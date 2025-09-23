@@ -148,6 +148,27 @@ export const saveProject = async (req, res) => {
   try {
     const { employee_id, employee_name, date, time_entries, total_hours, status } = req.body;
     
+    // Check if timesheet already exists for this employee and date
+    const existingTimesheet = await Timesheet.findOne({
+      employee_id,
+      date: new Date(date)
+    });
+
+    if (existingTimesheet) {
+      // Update existing timesheet
+      existingTimesheet.time_entries = time_entries;
+      existingTimesheet.total_hours = total_hours;
+      existingTimesheet.status = status || 'Submitted';
+      await existingTimesheet.save();
+      
+      return res.status(200).json({
+        success: true,
+        data: existingTimesheet,
+        message: 'Timesheet updated successfully'
+      });
+    }
+    
+    // Create new timesheet
     const timesheet = new Timesheet({
       employee_id,
       employee_name,
