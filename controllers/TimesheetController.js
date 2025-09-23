@@ -101,7 +101,7 @@ export const getTimesheets = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: timesheets
+      timesheets: timesheets
     });
   } catch (error) {
     res.status(500).json({
@@ -134,6 +134,35 @@ export const updateBreakTime = async (req, res) => {
       success: true,
       data: timesheet,
       message: 'Break time updated'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Save/Submit timesheet
+export const saveProject = async (req, res) => {
+  try {
+    const { employee_id, employee_name, date, time_entries, total_hours, status } = req.body;
+    
+    const timesheet = new Timesheet({
+      employee_id,
+      employee_name,
+      date: new Date(date),
+      time_entries,
+      total_hours,
+      status: status || 'Submitted'
+    });
+
+    await timesheet.save();
+
+    res.status(201).json({
+      success: true,
+      data: timesheet,
+      message: 'Timesheet saved successfully'
     });
   } catch (error) {
     res.status(500).json({
