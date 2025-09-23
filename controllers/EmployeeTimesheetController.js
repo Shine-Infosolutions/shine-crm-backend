@@ -74,3 +74,20 @@ export const getTimesheets = async (req, res) => {
     });
   }
 };
+
+// Admin: Get all timesheets
+export const getAllTimesheets = async (req, res) => {
+  try {
+    const timesheets = await EmployeeTimesheet.find({}).sort({ date: -1, employee_name: 1 });
+
+    res.status(200).json({
+      success: true,
+      timesheets: timesheets
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
