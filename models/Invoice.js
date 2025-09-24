@@ -85,6 +85,10 @@ const invoiceSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    notes: {
+      type: String,
+      default: '',
+    },
   },
   { timestamps: true }
 );
