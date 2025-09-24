@@ -56,6 +56,24 @@ export const deleteInvoice = async (req, res) => {
   }
 };
 
+// Update invoice notes
+export const updateInvoiceNotes = async (req, res) => {
+  try {
+    const { notes } = req.body;
+    const invoice = await Invoice.findByIdAndUpdate(
+      req.params.id,
+      { notes: notes || '' },
+      { new: true }
+    );
+    if (!invoice) {
+      return res.status(404).json({ success: false, error: "Invoice not found" });
+    }
+    res.json({ success: true, data: invoice });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 // Get next invoice number
 export const getNextInvoiceNumber = async (req, res) => {
     try {
