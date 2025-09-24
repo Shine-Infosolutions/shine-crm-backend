@@ -18,6 +18,10 @@ const attendanceSchema = new mongoose.Schema({
   time_out: {
     type: Date
   },
+  is_manual_checkout: {
+    type: Boolean,
+    default: false
+  },
   total_hours: {
     type: Number,
     default: 0
