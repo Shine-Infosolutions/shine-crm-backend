@@ -41,15 +41,13 @@ const attendanceSchema = new mongoose.Schema({
 // Index for efficient queries
 attendanceSchema.index({ employee_id: 1, date: 1 }, { unique: true });
 
-// Auto-set time_out to 7 hours for Present employees and calculate total hours
+// Calculate total hours only when both time_in and time_out exist
 attendanceSchema.pre('save', function(next) {
-  if (this.status === 'Present' && this.time_in && !this.time_out) {
-    this.time_out = new Date(this.time_in.getTime() + (7 * 60 * 60 * 1000));
-  }
-  
   if (this.time_in && this.time_out) {
     const diffMs = this.time_out - this.time_in;
     this.total_hours = Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
+  } else {
+    this.total_hours = 0;
   }
   next();
 });
