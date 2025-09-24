@@ -234,6 +234,48 @@ export const getDayWorkHistory = async (req, res) => {
   }
 };
 
+// Manual Checkout
+export const checkout = async (req, res) => {
+  try {
+    const { employee_id, checkout_time } = req.body;
+    const today = new Date().setHours(0, 0, 0, 0);
+
+    const attendance = await Attendance.findOne({
+      employee_id,
+      date: today
+    });
+
+    if (!attendance) {
+      return res.status(404).json({
+        success: false,
+        message: 'No time in record found for today'
+      });
+    }
+
+    if (attendance.time_out) {
+      return res.status(400).json({
+        success: false,
+        message: 'Already checked out today'
+      });
+    }
+
+    attendance.time_out = checkout_time ? new Date(checkout_time) : new Date();
+    attendance.is_manual_checkout = !!checkout_time;
+    await attendance.save();
+
+    res.status(200).json({
+      success: true,
+      data: attendance,
+      message: 'Checkout recorded successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 // Get employee work history (date range)
 export const getWorkHistory = async (req, res) => {
   try {
