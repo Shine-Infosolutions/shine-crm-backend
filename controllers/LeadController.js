@@ -83,3 +83,38 @@ export const deleteLead = async (req, res) => {
       .json({ message: "Error deleting lead", error: error.message });
   }
 };
+
+// Export leads to CSV
+export const exportLeadsToCSV = async (req, res) => {
+  try {
+    const { employeeId } = req.query;
+    const filter = employeeId ? { assignedEmployee: employeeId } : {};
+    const leads = await Lead.find(filter).populate('assignedEmployee', 'name').sort({ createdAt: -1 });
+    
+    const headers = ['Company Name', 'Address', 'Mobile Number', 'Update Reference', 'Meeting Time and Date', 'Type of Project', 'Call Date', 'Employee'];
+    const csvRows = [headers.join(',')];
+    
+    leads.forEach(lead => {
+      const row = [
+        `"${lead.name || ''}"`,
+        `"${lead.address || ''}"`,
+        `"${lead.number || ''}"`,
+        `"${lead.status || ''}"`,
+        `"${lead.meetingDate ? new Date(lead.meetingDate).toLocaleString() : ''}"`,
+        `"${lead.projectType || ''}"`,
+        `"${lead.callDate ? new Date(lead.callDate).toLocaleDateString() : new Date(lead.createdAt).toLocaleDateString()}"`,
+        `"${lead.assignedEmployee?.name || ''}"`
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csv = csvRows.join('\n');
+    const filename = employeeId ? `leads-employee-${employeeId}.csv` : 'leads-all.csv';
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    res.status(200).send(csv);
+  } catch (error) {
+    res.status(500).json({ message: "Error exporting leads", error: error.message });
+  }
+};

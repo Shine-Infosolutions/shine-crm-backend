@@ -41,6 +41,20 @@ const leadSchema = new mongoose.Schema(
       type: Date,
       required: false,
     },
+    assignedEmployee: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Employee',
+      required: false,
+    },
+    projectType: {
+      type: String,
+      enum: ['Website Development', 'Mobile App', 'E-commerce', 'Digital Marketing', 'Other'],
+      required: false,
+    },
+    callDate: {
+      type: Date,
+      required: false,
+    },
   },
   { timestamps: true }
 );

@@ -6,11 +6,13 @@ import {
   createLead,
   updateLead,
   deleteLead,
+  exportLeadsToCSV,
 } from "../controllers/LeadController.js";
 
 const router = express.Router();
 
 router.get("/", getLeads);
+router.get("/export/csv", exportLeadsToCSV);
 router.get("/:id", getLeadById);
 router.post("/", createLead);
 router.put("/:id", updateLead);
