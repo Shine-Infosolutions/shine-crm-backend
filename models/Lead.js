@@ -63,6 +63,10 @@ const leadSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+    reference: {
+      type: String,
+      required: false,
+    },
   },
   { timestamps: true }
 );
