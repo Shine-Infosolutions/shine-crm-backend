@@ -91,7 +91,7 @@ export const exportLeadsToCSV = async (req, res) => {
     const filter = employeeId ? { assignedEmployee: employeeId } : {};
     const leads = await Lead.find(filter).populate('assignedEmployee', 'name').sort({ createdAt: -1 });
     
-    const headers = ['Company Name', 'Address', 'Mobile Number', 'Update Reference', 'Meeting Time and Date', 'Type of Project', 'Call Date', 'Client Requested Call Date', 'Notes', 'Employee'];
+    const headers = ['Company Name', 'Address', 'Mobile Number', 'Status', 'Meeting Time and Date', 'Type of Project', 'Call Date', 'Client Requested Call Date', 'Notes', 'Reference'];
     const csvRows = [headers.join(',')];
     
     leads.forEach(lead => {
@@ -105,7 +105,7 @@ export const exportLeadsToCSV = async (req, res) => {
         `"${lead.callDate ? new Date(lead.callDate).toLocaleDateString() : new Date(lead.createdAt).toLocaleDateString()}"`,
         `"${lead.clientRequestedCallDate ? new Date(lead.clientRequestedCallDate).toLocaleDateString() : ''}"`,
         `"${lead.notes || ''}"`,
-        `"${lead.assignedEmployee?.name || ''}"`
+        `"${lead._id || ''}"`
       ];
       csvRows.push(row.join(','));
     });
