@@ -55,6 +55,14 @@ const leadSchema = new mongoose.Schema(
       type: Date,
       required: false,
     },
+    clientRequestedCallDate: {
+      type: Date,
+      required: false,
+    },
+    notes: {
+      type: String,
+      required: false,
+    },
   },
   { timestamps: true }
 );
