@@ -105,7 +105,7 @@ export const exportLeadsToCSV = async (req, res) => {
         `"${lead.callDate ? new Date(lead.callDate).toLocaleDateString() : new Date(lead.createdAt).toLocaleDateString()}"`,
         `"${lead.clientRequestedCallDate ? new Date(lead.clientRequestedCallDate).toLocaleDateString() : ''}"`,
         `"${lead.notes || ''}"`,
-        `"${lead._id || ''}"`
+        `"${lead.reference || ''}"`
       ];
       csvRows.push(row.join(','));
     });
