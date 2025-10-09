@@ -3,7 +3,21 @@ import Invoice from "../models/Invoice.js";
 // Create a new invoice
 export const createInvoice = async (req, res) => {
   try {
-    const invoice = new Invoice(req.body);
+    const invoiceData = { ...req.body };
+    
+    // Handle backward compatibility - if isGSTInvoice is not provided, default to true
+    if (invoiceData.isGSTInvoice === undefined) {
+      invoiceData.isGSTInvoice = true;
+    }
+    
+    // For non-GST invoices, allow customerGST to be "N/A" or empty
+    if (invoiceData.isGSTInvoice === false) {
+      if (!invoiceData.customerGST || invoiceData.customerGST.trim() === '') {
+        invoiceData.customerGST = 'N/A';
+      }
+    }
+    
+    const invoice = new Invoice(invoiceData);
     await invoice.save();
     res.status(201).json({ success: true, data: invoice });
   } catch (err) {
@@ -37,8 +51,18 @@ export const getInvoiceById = async (req, res) => {
 // Update invoice
 export const updateInvoice = async (req, res) => {
   try {
-    const invoice = await Invoice.findByIdAndUpdate(req.params.id, req.body, {
+    const updateData = { ...req.body };
+    
+    // For non-GST invoices, allow customerGST to be "N/A" or empty
+    if (updateData.isGSTInvoice === false) {
+      if (!updateData.customerGST || updateData.customerGST.trim() === '') {
+        updateData.customerGST = 'N/A';
+      }
+    }
+    
+    const invoice = await Invoice.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
+      runValidators: true,
     });
     res.json({ success: true, data: invoice });
   } catch (err) {

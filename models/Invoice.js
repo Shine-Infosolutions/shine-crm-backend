@@ -2,9 +2,15 @@ import mongoose from 'mongoose';
 
 const invoiceSchema = new mongoose.Schema(
   {
+    isGSTInvoice: {
+      type: Boolean,
+      default: true,
+    },
     customerGST: {
       type: String,
-      required: true,
+      required: function() {
+        return this.isGSTInvoice !== false;
+      },
     },
     invoiceDate: {
       type: Date,
