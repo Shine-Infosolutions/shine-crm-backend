@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "dev": "node server.js",
-    "server": "nodemon server.js"
+    "server": "nodemon server.js",
+    "seed-units": "node seedUnits.js"
   },
   "keywords": [],
   "author": "",
