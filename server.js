@@ -16,6 +16,7 @@ import OfficeExpenseRoutes from "./routes/officeExpenseRoutes.js";
 import attendanceRoutes from "./routes/AttendanceRoutes.js";
 import taskRoutes from "./routes/TaskRoutes.js";
 import employeeTimesheetRoutes from "./routes/EmployeeTimesheetRoutes.js";
+import unitRoutes from "./routes/UnitRoutes.js";
 
 
 //import "./config/sendReminders.js"
@@ -53,6 +54,7 @@ app.use("/api/office-expenses", OfficeExpenseRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/employee-timesheet", employeeTimesheetRoutes);
+app.use("/api/units", unitRoutes);
 
 
 app.get("/", (req, res) => {
