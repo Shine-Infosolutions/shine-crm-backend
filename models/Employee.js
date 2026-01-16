@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const employeeSchema = new mongoose.Schema({
   employee_id: { type: String, unique: true },
@@ -7,7 +8,7 @@ const employeeSchema = new mongoose.Schema({
     public_id: String,
     url: String,
   },
-  password: { type: String, required: true },
+  password: { type: String, required: true, select: false },
 
   contact1: { type: String, required: true },
   contact2: { type: String },
@@ -180,6 +181,11 @@ const employeeSchema = new mongoose.Schema({
 employeeSchema.pre("save", async function (next) {
   // Update timestamp
   this.updated_at = Date.now();
+
+  // Hash password if modified
+  if (this.isModified('password')) {
+    this.password = await bcrypt.hash(this.password, 12);
+  }
 
   // Only generate ID & fill contract for new employees
   if (this.isNew) {

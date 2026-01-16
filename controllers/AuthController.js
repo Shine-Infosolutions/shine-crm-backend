@@ -1,36 +1,56 @@
 import User from "../models/User.js";
+import Employee from "../models/Employee.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '24h' });
+const generateToken = (userId, role) => {
+  return jwt.sign({ userId, role }, process.env.JWT_SECRET, { expiresIn: '24h' });
 };
 
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Try admin login first
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    const token = generateToken(user._id);
-
-    res.json({
-      token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
+    if (user) {
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (isPasswordValid) {
+        const token = generateToken(user._id, 'admin');
+        return res.json({
+          token,
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            isAdmin: user.isAdmin,
+            role: 'admin'
+          }
+        });
       }
-    });
+    }
+
+    // Try employee login
+    const employee = await Employee.findOne({ email }).select('+password');
+    if (employee) {
+      const isPasswordValid = await bcrypt.compare(password, employee.password);
+      if (isPasswordValid) {
+        const token = generateToken(employee._id, 'employee');
+        return res.json({
+          token,
+          user: {
+            _id: employee._id,
+            name: employee.name,
+            email: employee.email,
+            employee_id: employee.employee_id,
+            isAdmin: false,
+            role: 'employee'
+          }
+        });
+      }
+    }
+
+    return res.status(401).json({ message: "Invalid email or password" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

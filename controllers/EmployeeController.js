@@ -162,7 +162,7 @@ export const createEmployee = async (req, res) => {
 // Get All Employees
 export const getEmployees = async (req, res) => {
   try {
-    const employees = await Employee.find().sort({ employee_id: 1 });
+    const employees = await Employee.find().select('-password').sort({ employee_id: 1 });
     res.status(200).json({
       success: true,
       data: employees
@@ -178,7 +178,7 @@ export const getEmployees = async (req, res) => {
 // Get Single Employee
 export const getEmployeeById = async (req, res) => {
   try {
-    const employee = await Employee.findById(req.params.id);
+    const employee = await Employee.findById(req.params.id).select('-password');
     
     if (!employee) {
       return res.status(404).json({
