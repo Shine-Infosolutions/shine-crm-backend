@@ -17,6 +17,8 @@ import attendanceRoutes from "./routes/AttendanceRoutes.js";
 import taskRoutes from "./routes/TaskRoutes.js";
 import employeeTimesheetRoutes from "./routes/EmployeeTimesheetRoutes.js";
 import unitRoutes from "./routes/UnitRoutes.js";
+import settingsRoutes from "./routes/SettingsRoutes.js";
+import backupRoutes from "./routes/BackupRoutes.js";
 
 
 //import "./config/sendReminders.js"
@@ -55,6 +57,8 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/employee-timesheet", employeeTimesheetRoutes);
 app.use("/api/units", unitRoutes);
+app.use("/api/settings", settingsRoutes);
+app.use("/api/backup", backupRoutes);
 
 
 app.get("/", (req, res) => {
