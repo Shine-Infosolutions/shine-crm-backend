@@ -175,10 +175,19 @@ export const getEmployees = async (req, res) => {
   }
 };
  
-// Get Single Employee
 export const getEmployeeById = async (req, res) => {
   try {
-    const employee = await Employee.findById(req.params.id).select('-password');
+    const { id } = req.params;
+    
+    // Allow employees to view only their own data, admins can view any
+    if (req.user.role === 'employee' && req.user._id.toString() !== id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only view your own data.'
+      });
+    }
+    
+    const employee = await Employee.findById(id).select('-password');
     
     if (!employee) {
       return res.status(404).json({

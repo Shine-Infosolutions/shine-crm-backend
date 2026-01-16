@@ -15,6 +15,7 @@ import {
   // acceptTerms,
   // getTermsStatus,
 } from "../controllers/EmployeeController.js";
+import { authenticate, adminAuth } from "../middleware/adminAuth.js";
 
 import upload from "../config/multer.js";
 
@@ -32,19 +33,19 @@ const uploadFields = upload.fields([
 ]);
 
 // Employee routes
-router.post("/", uploadFields, createEmployee);
-router.put("/:id", uploadFields, updateEmployee);
-router.get("/", getEmployees);
-router.get("/:id", getEmployeeById);
-router.delete("/:id", deleteEmployee);
-router.delete("/:employeeId/documents/:docType/:public_id", deleteDocument);
-router.patch("/employees/:id/toggle-current", toggleCurrentEmployee);
+router.post("/", adminAuth, uploadFields, createEmployee);
+router.put("/:id", adminAuth, uploadFields, updateEmployee);
+router.get("/", adminAuth, getEmployees);
+router.get("/:id", authenticate, getEmployeeById);
+router.delete("/:id", adminAuth, deleteEmployee);
+router.delete("/:employeeId/documents/:docType/:public_id", adminAuth, deleteDocument);
+router.patch("/employees/:id/toggle-current", adminAuth, toggleCurrentEmployee);
 
 // Contract-related routes
-router.get("/:id/contract/preview", previewContract);
-router.patch("/:id/contract/accept", acceptContract);
-router.put("/:id/contract/update", updateContract);
-router.get("/:id/contract/download", downloadContract);
+router.get("/:id/contract/preview", authenticate, previewContract);
+router.patch("/:id/contract/accept", authenticate, acceptContract);
+router.put("/:id/contract/update", adminAuth, updateContract);
+router.get("/:id/contract/download", authenticate, downloadContract);
 // router.post('/:id/accept-policy', acceptPolicy);
 // router.get('/:id/policy-status', getPolicyStatus);
 // router.post("/:id/accept-terms", acceptTerms);

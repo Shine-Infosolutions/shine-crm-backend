@@ -1,8 +1,9 @@
 import express from "express";
 import { getAllUnits } from "../controllers/UnitController.js";
+import { authenticate } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
-router.get("/", getAllUnits);
+router.get("/", authenticate, getAllUnits);
 
 export default router;

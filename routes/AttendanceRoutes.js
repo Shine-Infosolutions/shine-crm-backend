@@ -9,17 +9,18 @@ import {
   getWorkHistory,
   getDayWorkHistory
 } from "../controllers/AttendanceController.js";
+import { authenticate, adminAuth } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
 // Attendance routes
-router.post("/time-in", timeIn);
-router.post("/time-out", timeOut);
-router.post("/checkout", checkout);
-router.get("/", getAttendance);
-router.get("/today/:employee_id", getTodayAttendance);
-router.get("/running-time/:employee_id", getRunningTime);
-router.get("/work-history/:employee_id", getWorkHistory);
-router.get("/day-work/:employee_id", getDayWorkHistory);
+router.post("/time-in", authenticate, timeIn);
+router.post("/time-out", authenticate, timeOut);
+router.post("/checkout", authenticate, checkout);
+router.get("/", adminAuth, getAttendance);
+router.get("/today/:employee_id", authenticate, getTodayAttendance);
+router.get("/running-time/:employee_id", authenticate, getRunningTime);
+router.get("/work-history/:employee_id", authenticate, getWorkHistory);
+router.get("/day-work/:employee_id", authenticate, getDayWorkHistory);
 
 export default router;

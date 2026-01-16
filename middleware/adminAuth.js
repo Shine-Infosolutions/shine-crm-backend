@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Employee from "../models/Employee.js";
 
 export const authenticate = async (req, res, next) => {
   try {
@@ -10,13 +11,21 @@ export const authenticate = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId);
     
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid token.' });
+    if (decoded.role === 'admin') {
+      const user = await User.findById(decoded.userId);
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid token.' });
+      }
+      req.user = { ...user.toObject(), role: 'admin' };
+    } else {
+      const employee = await Employee.findById(decoded.userId);
+      if (!employee) {
+        return res.status(401).json({ message: 'Invalid token.' });
+      }
+      req.user = { ...employee.toObject(), role: 'employee' };
     }
-
-    req.user = user;
+    
     next();
   } catch (error) {
     res.status(401).json({ message: 'Invalid token.' });
@@ -26,7 +35,7 @@ export const authenticate = async (req, res, next) => {
 export const adminAuth = async (req, res, next) => {
   try {
     await authenticate(req, res, () => {
-      if (!req.user.isAdmin) {
+      if (req.user.role !== 'admin' || !req.user.isAdmin) {
         return res.status(403).json({ message: 'Admin access required' });
       }
       next();

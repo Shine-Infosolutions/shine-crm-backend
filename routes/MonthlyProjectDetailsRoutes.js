@@ -6,13 +6,14 @@ import {
   updateMonthlyProjectDetail,
   deleteMonthlyProjectDetail,
 } from "../controllers/MonthlyProjectDetailsController.js";
+import { authenticate, adminAuth } from "../middleware/adminAuth.js";
 
 const monthlyProjectrouter = express.Router();
 
-monthlyProjectrouter.get("/", getMonthlyProjectDetails);
-monthlyProjectrouter.get("/:id", getMonthlyProjectDetailById);
-monthlyProjectrouter.post("/", createMonthlyProjectDetail);
-monthlyProjectrouter.put("/:id", updateMonthlyProjectDetail);
-monthlyProjectrouter.delete("/:id", deleteMonthlyProjectDetail);
+monthlyProjectrouter.get("/", authenticate, getMonthlyProjectDetails);
+monthlyProjectrouter.get("/:id", authenticate, getMonthlyProjectDetailById);
+monthlyProjectrouter.post("/", adminAuth, createMonthlyProjectDetail);
+monthlyProjectrouter.put("/:id", adminAuth, updateMonthlyProjectDetail);
+monthlyProjectrouter.delete("/:id", adminAuth, deleteMonthlyProjectDetail);
 
 export default monthlyProjectrouter;

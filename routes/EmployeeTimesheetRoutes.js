@@ -4,11 +4,12 @@ import {
   getTimesheets,
   getAllTimesheets
 } from "../controllers/EmployeeTimesheetController.js";
+import { authenticate, adminAuth } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
-router.post("/", submitTimesheet);
-router.get("/", getTimesheets);
-router.get("/admin/all", getAllTimesheets);
+router.post("/", authenticate, submitTimesheet);
+router.get("/", authenticate, getTimesheets);
+router.get("/admin/all", adminAuth, getAllTimesheets);
 
 export default router;
