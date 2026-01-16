@@ -100,22 +100,19 @@ export const updateInvoiceNotes = async (req, res) => {
 
 // Get next invoice number
 export const getNextInvoiceNumber = async (req, res) => {
-    try {
-      const latest = await Invoice.findOne().sort({ createdAt: -1 });
-  
-      let lastNumber = 0;
-      if (latest && latest.invoiceNumber) {
-        const parts = latest.invoiceNumber.split("-");
-        if (parts.length === 2 && !isNaN(parts[1])) {
-          lastNumber = parseInt(parts[1]);
-        }
-      }
-  
-      const nextNumber = lastNumber + 1;
-      const nextInvoiceNumber = `INV-${nextNumber}`;
-      res.json({ nextInvoiceNumber });
-    } catch (err) {
-      res.status(500).json({ error: "Could not generate next invoice number" });
-    }
-  };
+  try {
+    const Counter = (await import('mongoose')).default.model('Counter', new (await import('mongoose')).default.Schema({
+      _id: String,
+      seq: { type: Number, default: 0 }
+    }));
+    
+    const counter = await Counter.findById('invoice_number');
+    const nextNumber = counter ? counter.seq + 1 : 1;
+    const nextInvoiceNumber = `INV-${nextNumber}`;
+    
+    res.json({ nextInvoiceNumber });
+  } catch (err) {
+    res.status(500).json({ error: "Could not generate next invoice number" });
+  }
+};
   

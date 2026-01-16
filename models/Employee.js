@@ -189,14 +189,19 @@ employeeSchema.pre("save", async function (next) {
 
   // Only generate ID & fill contract for new employees
   if (this.isNew) {
-    const Employee = mongoose.model("Employee");
-    const latestEmployee = await Employee.findOne().sort({ created_at: -1 });
-    let nextId = 1;
-    if (latestEmployee?.employee_id) {
-      const num = parseInt(latestEmployee.employee_id.replace('emp', ''), 10);
-      if (!isNaN(num)) nextId = num + 1;
-    }
-    this.employee_id = `emp${String(nextId).padStart(2, '0')}`;
+    // Use atomic counter for employee ID generation
+    const Counter = mongoose.model('Counter', new mongoose.Schema({
+      _id: String,
+      seq: { type: Number, default: 0 }
+    }));
+    
+    const counter = await Counter.findByIdAndUpdate(
+      'employee_id',
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
+    
+    this.employee_id = `emp${String(counter.seq).padStart(2, '0')}`;
 
     // Auto-fill contract fields
     this.contract_agreement.effective_date = this.work_start_date;
