@@ -238,7 +238,11 @@ export const updateEmployee = async (req, res) => {
       profile_image: async () => {
         if (fileData.profile_image) {
           if (employee.profile_image?.public_id) {
-            await deleteFromCloudinary(employee.profile_image.public_id);
+            try {
+              await deleteFromCloudinary(employee.profile_image.public_id);
+            } catch (err) {
+              console.warn('Failed to delete old profile image:', err.message);
+            }
           }
           return fileData.profile_image;
         }
@@ -247,7 +251,11 @@ export const updateEmployee = async (req, res) => {
       aadhar_document: async () => {
         if (fileData.aadhar_document) {
           if (employee.aadhar_document?.public_id) {
-            await deleteFromCloudinary(employee.aadhar_document.public_id);
+            try {
+              await deleteFromCloudinary(employee.aadhar_document.public_id);
+            } catch (err) {
+              console.warn('Failed to delete old aadhar document:', err.message);
+            }
           }
           return fileData.aadhar_document;
         }
@@ -256,7 +264,11 @@ export const updateEmployee = async (req, res) => {
       pan_document: async () => {
         if (fileData.pan_document) {
           if (employee.pan_document?.public_id) {
-            await deleteFromCloudinary(employee.pan_document.public_id);
+            try {
+              await deleteFromCloudinary(employee.pan_document.public_id);
+            } catch (err) {
+              console.warn('Failed to delete old pan document:', err.message);
+            }
           }
           return fileData.pan_document;
         }
@@ -275,7 +287,11 @@ export const updateEmployee = async (req, res) => {
     for (const field of docFields) {
       if (fileData[field]) {
         if (employee.documents?.[field]?.public_id) {
-          await deleteFromCloudinary(employee.documents[field].public_id);
+          try {
+            await deleteFromCloudinary(employee.documents[field].public_id);
+          } catch (err) {
+            console.warn(`Failed to delete old ${field}:`, err.message);
+          }
         }
         employeeData.documents[field] = fileData[field];
       } else {
@@ -306,7 +322,11 @@ export const updateEmployee = async (req, res) => {
 
           if (uploadedLetter) {
             if (existing?.experience_letter?.public_id) {
-              await deleteFromCloudinary(existing.experience_letter.public_id);
+              try {
+                await deleteFromCloudinary(existing.experience_letter.public_id);
+              } catch (err) {
+                console.warn('Failed to delete old experience letter:', err.message);
+              }
             }
             return { ...exp, experience_letter: uploadedLetter };
           }
