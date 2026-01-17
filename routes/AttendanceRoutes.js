@@ -7,7 +7,8 @@ import {
   getTodayAttendance,
   getRunningTime,
   getWorkHistory,
-  getDayWorkHistory
+  getDayWorkHistory,
+  getEmployeeAttendance
 } from "../controllers/AttendanceController.js";
 import { authenticate, adminAuth } from "../middleware/adminAuth.js";
 
@@ -17,7 +18,8 @@ const router = express.Router();
 router.post("/time-in", authenticate, timeIn);
 router.post("/time-out", authenticate, timeOut);
 router.post("/checkout", authenticate, checkout);
-router.get("/", adminAuth, getAttendance);
+router.get("/", adminAuth, getAttendance); // Admin only
+router.get("/my-attendance", authenticate, getEmployeeAttendance); // Employee can access their own
 router.get("/today/:employee_id", authenticate, getTodayAttendance);
 router.get("/running-time/:employee_id", authenticate, getRunningTime);
 router.get("/work-history/:employee_id", authenticate, getWorkHistory);

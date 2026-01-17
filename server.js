@@ -3,7 +3,8 @@ import connectDB from "./config/db.js";
 import dotenv from "dotenv";
 import cors from "cors";
 import "dotenv/config";
-//import fileUpload from "express-fileupload";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import adminRoutes from "./routes/AdminRoutes.js";
 import authRoutes from "./routes/AuthRoutes.js";
 import projectRoutes from "./routes/ProjectRoutes.js";
@@ -20,11 +21,30 @@ import unitRoutes from "./routes/UnitRoutes.js";
 import settingsRoutes from "./routes/SettingsRoutes.js";
 import backupRoutes from "./routes/BackupRoutes.js";
 
-
-//import "./config/sendReminders.js"
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
+
+// Security middleware
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: { success: false, message: 'Too many requests, please try again later.' }
+});
+app.use('/api/', limiter);
+
+// Auth rate limiting (stricter)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 login attempts per windowMs
+  message: { success: false, message: 'Too many login attempts, please try again later.' }
+});
+app.use('/api/auth/login', authLimiter);
 
 // Allowed Origins
 const allowedOrigins = [
@@ -37,18 +57,14 @@ const allowedOrigins = [
 await connectDB();
 
 // Middleware Configuration
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '10mb' })); // Reduced from 50mb
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cors({ 
   origin: allowedOrigins, 
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-// app.use(fileUpload({
-//   useTempFiles: true,
-//   tempFileDir: "/tmp/",
-// }));
 
 // Routes
 app.use("/api/admin", adminRoutes);
@@ -67,11 +83,16 @@ app.use("/api/units", unitRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/backup", backupRoutes);
 
-
 app.get("/", (req, res) => {
-  res.send("API is working..");
+  res.json({ message: "Shine CRM API is running securely" });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ success: false, message: 'Something went wrong!' });
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server is running securely on port ${port}`);
 });

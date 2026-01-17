@@ -305,6 +305,47 @@ export const checkout = async (req, res) => {
   }
 };
 
+// Get employee's own attendance records
+export const getEmployeeAttendance = async (req, res) => {
+  try {
+    const employeeId = req.user._id; // Get from authenticated user
+    const { date, month, year } = req.query;
+    let filter = { employee_id: employeeId };
+    
+    if (date) {
+      const targetDate = new Date(date);
+      targetDate.setHours(0, 0, 0, 0);
+      filter.date = targetDate;
+    } else if (month && year) {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0);
+      filter.date = { $gte: startDate, $lte: endDate };
+    } else {
+      // Default to last 3 months if no date filter
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 3);
+      filter.date = { $gte: startDate, $lte: endDate };
+    }
+
+    console.log('Employee attendance filter:', filter);
+    
+    const attendance = await Attendance.find(filter)
+      .populate('employee_id', 'name employee_id')
+      .sort({ date: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: attendance
+    });
+  } catch (error) {
+    console.error('Employee attendance error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
 // Get employee work history (date range)
 export const getWorkHistory = async (req, res) => {
   try {

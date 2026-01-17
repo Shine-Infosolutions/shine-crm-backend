@@ -1,6 +1,14 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
+// Counter model for auto-incrementing employee IDs
+const counterSchema = new mongoose.Schema({
+  _id: String,
+  seq: { type: Number, default: 0 }
+});
+
+const Counter = mongoose.models.Counter || mongoose.model('Counter', counterSchema);
+
 const employeeSchema = new mongoose.Schema({
   employee_id: { type: String, unique: true },
   name: { type: String, required: true },
@@ -190,11 +198,6 @@ employeeSchema.pre("save", async function (next) {
   // Only generate ID & fill contract for new employees
   if (this.isNew) {
     // Use atomic counter for employee ID generation
-    const Counter = mongoose.model('Counter', new mongoose.Schema({
-      _id: String,
-      seq: { type: Number, default: 0 }
-    }));
-    
     const counter = await Counter.findByIdAndUpdate(
       'employee_id',
       { $inc: { seq: 1 } },

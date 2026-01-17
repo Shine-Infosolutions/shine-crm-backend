@@ -35,7 +35,7 @@ const uploadFields = upload.fields([
 // Employee routes
 router.post("/", adminAuth, uploadFields, createEmployee);
 router.put("/:id", adminAuth, uploadFields, updateEmployee);
-router.get("/", adminAuth, getEmployees);
+router.get("/", authenticate, getEmployees); // Allow employees to see employee list
 router.get("/:id", authenticate, getEmployeeById);
 router.delete("/:id", adminAuth, deleteEmployee);
 router.delete("/:employeeId/documents/:docType/:public_id", adminAuth, deleteDocument);

@@ -162,7 +162,15 @@ export const createEmployee = async (req, res) => {
 // Get All Employees
 export const getEmployees = async (req, res) => {
   try {
-    const employees = await Employee.find().select('-password').sort({ employee_id: 1 });
+    let query = {};
+    let select = '-password';
+    
+    // If employee role, only return basic info and exclude sensitive data
+    if (req.user.role === 'employee') {
+      select = 'name employee_id email designation department';
+    }
+    
+    const employees = await Employee.find(query).select(select).sort({ employee_id: 1 });
     res.status(200).json({
       success: true,
       data: employees
