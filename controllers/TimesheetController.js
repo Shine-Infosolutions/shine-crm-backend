@@ -192,3 +192,33 @@ export const saveProject = async (req, res) => {
     });
   }
 };
+
+// Admin: Approve timesheet
+export const approveTimesheet = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const timesheet = await Timesheet.findById(id);
+    if (!timesheet) {
+      return res.status(404).json({
+        success: false,
+        message: 'Timesheet not found'
+      });
+    }
+
+    timesheet.status = status;
+    await timesheet.save();
+
+    res.status(200).json({
+      success: true,
+      data: timesheet,
+      message: `Timesheet ${status.toLowerCase()} successfully`
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

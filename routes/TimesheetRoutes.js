@@ -4,15 +4,18 @@ import {
   clockOut,
   getTimesheets,
   updateBreakTime,
-  saveProject
+  saveProject,
+  approveTimesheet
 } from "../controllers/TimesheetController.js";
+import { authenticate, adminAuth } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
-router.post("/clock-in", clockIn);
-router.post("/clock-out", clockOut);
-router.get("/", getTimesheets);
-router.patch("/:id/break-time", updateBreakTime);
-router.post("/", saveProject);
+router.post("/clock-in", authenticate, clockIn);
+router.post("/clock-out", authenticate, clockOut);
+router.get("/", authenticate, getTimesheets);
+router.patch("/:id/break-time", authenticate, updateBreakTime);
+router.post("/", authenticate, saveProject);
+router.patch("/approve/:id", adminAuth, approveTimesheet);
 
 export default router;
