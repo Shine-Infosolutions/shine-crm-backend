@@ -4,12 +4,32 @@ import Lead from "../models/Lead.js";
 // Get all leads
 export const getLeads = async (req, res) => {
   try {
-    const leads = await Lead.find().sort({ createdAt: -1 });
-    res.status(200).json(leads);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    const leads = await Lead.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await Lead.countDocuments();
+    
+    res.status(200).json({
+      success: true,
+      data: leads,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching leads", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 };
 

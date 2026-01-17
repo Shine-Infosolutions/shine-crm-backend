@@ -194,16 +194,32 @@ export const createEmployee = async (req, res) => {
 // Get All Employees
 export const getEmployees = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
     const isEmployee = req.user.role === 'employee';
     const select = isEmployee 
       ? 'name employee_id email designation department contract_agreement'
       : '-password';
     
-    const employees = await Employee.find({}).select(select).sort({ employee_id: 1 });
+    const employees = await Employee.find({})
+      .select(select)
+      .sort({ employee_id: 1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await Employee.countDocuments();
     
     res.status(200).json({
       success: true,
-      data: employees
+      data: employees,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     res.status(500).json({

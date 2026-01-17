@@ -28,8 +28,27 @@ export const createInvoice = async (req, res) => {
 // Get all invoices
 export const getAllInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.find().sort({ createdAt: -1 });
-    res.json({ success: true, data: invoices });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    const invoices = await Invoice.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await Invoice.countDocuments();
+    
+    res.json({
+      success: true,
+      data: invoices,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

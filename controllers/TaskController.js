@@ -70,6 +70,10 @@ export const assignTask = async (req, res) => {
 export const getTasks = async (req, res) => {
   try {
     const { employee_id, status } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
     let filter = {};
 
     if (employee_id) {
@@ -84,11 +88,21 @@ export const getTasks = async (req, res) => {
       .populate('assigned_to', 'name employee_id')
       .populate('assigned_by', 'name')
       .populate('taken_by', 'name employee_id')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await Task.countDocuments(filter);
 
     res.status(200).json({
       success: true,
-      data: tasks
+      data: tasks,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -138,13 +152,27 @@ export const updateTaskStatus = async (req, res) => {
 // Get available tasks for employees to take
 export const getAvailableTasks = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
     const tasks = await Task.find({ status: 'Available' })
       .populate('assigned_by', 'name')
-      .sort({ priority: -1, createdAt: -1 });
+      .sort({ priority: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await Task.countDocuments({ status: 'Available' });
 
     res.status(200).json({
       success: true,
-      data: tasks
+      data: tasks,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -291,19 +319,34 @@ export const saveDailySummary = async (req, res) => {
 export const getEmployeeTasks = async (req, res) => {
   try {
     const { employee_id } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
     
-    const tasks = await Task.find({
+    const filter = {
       $or: [
         { assigned_to: employee_id },
         { taken_by: employee_id }
       ]
-    })
-    .populate(['assigned_by', 'taken_by'])
-    .sort({ createdAt: -1 });
+    };
+    
+    const tasks = await Task.find(filter)
+      .populate(['assigned_by', 'taken_by'])
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await Task.countDocuments(filter);
 
     res.status(200).json({
       success: true,
-      data: tasks
+      data: tasks,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     res.status(500).json({

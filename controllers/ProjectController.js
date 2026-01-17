@@ -4,8 +4,27 @@ import Project from "../models/Project.js";
 // Get all projects
 export const getProjects = async (req, res) => {
   try {
-    const projects = await Project.find({});
-    res.json(projects);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    const projects = await Project.find({})
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await Project.countDocuments();
+    
+    res.json({
+      success: true,
+      data: projects,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
