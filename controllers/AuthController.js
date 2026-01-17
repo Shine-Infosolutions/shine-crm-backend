@@ -18,6 +18,7 @@ export const login = async (req, res) => {
       if (isPasswordValid) {
         const token = generateToken(user._id, 'admin');
         return res.json({
+          success: true,
           token,
           user: {
             _id: user._id,
@@ -37,6 +38,7 @@ export const login = async (req, res) => {
       if (isPasswordValid) {
         const token = generateToken(employee._id, 'employee');
         return res.json({
+          success: true,
           token,
           user: {
             _id: employee._id,
@@ -50,9 +52,9 @@ export const login = async (req, res) => {
       }
     }
 
-    return res.status(401).json({ message: "Invalid email or password" });
+    return res.status(401).json({ success: false, message: "Invalid email or password" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
