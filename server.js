@@ -27,12 +27,8 @@ const port = process.env.PORT || 5000;
 // Security middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
-  contentSecurityPolicy: {
-    directives: {
-      "frame-ancestors": ["'self'", "'unsafe-inline'"],
-      "frame-src": ["'self'", "'unsafe-inline'"],
-    },
-  },
+  contentSecurityPolicy: false,
+  frameguard: false, // Disable X-Frame-Options to allow iframe embedding
 }));
 
 // Rate limiting configuration

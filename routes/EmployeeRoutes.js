@@ -91,7 +91,7 @@ router.get("/:id/contract/preview", authenticateFlexible, previewContract);
 router.get("/:id/contract/content", authenticate, getContractContent);
 router.put("/:id/contract/content", adminAuth, updateContractContent);
 router.patch("/:id/contract/accept", authenticate, acceptContract);
-router.put("/:id/contract/update", adminAuth, updateContract);
+router.put("/:id/contract/update", authenticate, updateContract);
 router.get("/:id/contract/download", authenticateFlexible, downloadContract);
 // router.post('/:id/accept-policy', acceptPolicy);
 // router.get('/:id/policy-status', getPolicyStatus);

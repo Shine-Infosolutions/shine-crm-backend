@@ -199,15 +199,13 @@ export const createEmployee = async (req, res) => {
 // Get All Employees
 export const getEmployees = async (req, res) => {
   try {
-    let query = {};
-    let select = '-password';
+    const isEmployee = req.user.role === 'employee';
+    const select = isEmployee 
+      ? 'name employee_id email designation department contract_agreement'
+      : '-password';
     
-    // If employee role, only return basic info and exclude sensitive data
-    if (req.user.role === 'employee') {
-      select = 'name employee_id email designation department';
-    }
+    const employees = await Employee.find({}).select(select).sort({ employee_id: 1 });
     
-    const employees = await Employee.find(query).select(select).sort({ employee_id: 1 });
     res.status(200).json({
       success: true,
       data: employees
@@ -704,9 +702,19 @@ export const updateContract = async (req, res, next) => {
     const { id } = req.params;
     const updates = {};
 
-    Object.entries(req.body).forEach(([key, val]) => {
-      updates[`contract_agreement.${key}`] = val;
-    });
+    if (req.body && typeof req.body === 'object') {
+      // Handle nested acceptance object specially
+      if (req.body.acceptance) {
+        Object.entries(req.body.acceptance).forEach(([key, val]) => {
+          updates[`contract_agreement.acceptance.${key}`] = val;
+        });
+      } else {
+        // Handle other contract fields
+        Object.entries(req.body).forEach(([key, val]) => {
+          updates[`contract_agreement.${key}`] = val;
+        });
+      }
+    }
 
     const updated = await Employee.findByIdAndUpdate(
       id,
