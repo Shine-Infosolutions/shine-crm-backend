@@ -173,6 +173,9 @@ const employeeSchema = new mongoose.Schema({
       accepted_at: { type: Date },
       signature: { type: String },
     },
+
+    editedContent: { type: String }, // For custom edited contract content
+    lastEdited: { type: Date }, // When contract was last edited
   },
 
   terms_and_conditions: {

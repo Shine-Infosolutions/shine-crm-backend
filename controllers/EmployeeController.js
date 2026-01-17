@@ -122,10 +122,14 @@ export const createEmployee = async (req, res) => {
     // 💾 Save employee
     const employee = new Employee(employeeData);
     const savedEmployee = await employee.save();
+    
+    // Remove password from response
+    const responseEmployee = savedEmployee.toObject();
+    delete responseEmployee.password;
 
     return res.status(201).json({
       success: true,
-      data: savedEmployee,
+      data: responseEmployee,
       message: "Employee created successfully",
     });
 
@@ -209,6 +213,7 @@ export const getEmployeeById = async (req, res) => {
       data: employee
     });
   } catch (error) {
+    console.error('Error in getEmployeeById:', error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -355,7 +360,7 @@ export const updateEmployee = async (req, res) => {
       req.params.id,
       { $set: employeeData },
       { new: true, runValidators: true }
-    );
+    ).select('-password');
 
     res.status(200).json({
       success: true,
@@ -558,12 +563,78 @@ export const previewContract = async (req, res) => {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    const html = renderContractHTML(employee);
+    // Use edited content if available, otherwise generate default
+    let html;
+    if (employee.contract_agreement?.editedContent) {
+      html = employee.contract_agreement.editedContent;
+    } else {
+      html = renderContractHTML(employee);
+    }
+
     res.set('Content-Type', 'text/html');
     res.send(html);
   } catch (err) {
     console.error("Contract preview error:", err);
     res.status(500).json({ message: "Failed to generate contract preview" });
+  }
+};
+
+// Get Contract Content for Editing
+export const getContractContent = async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.params.id);
+    if (!employee) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    }
+
+    // Check if there's custom edited content
+    if (employee.contract_agreement?.editedContent) {
+      return res.json({
+        success: true,
+        content: employee.contract_agreement.editedContent
+      });
+    }
+
+    // Return default generated content
+    const html = renderContractHTML(employee);
+    res.json({
+      success: true,
+      content: html
+    });
+  } catch (err) {
+    console.error("Get contract content error:", err);
+    res.status(500).json({ success: false, message: "Failed to get contract content" });
+  }
+};
+
+// Update Contract Content
+export const updateContractContent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { editedContent } = req.body;
+
+    const employee = await Employee.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          'contract_agreement.editedContent': editedContent,
+          'contract_agreement.lastEdited': new Date()
+        }
+      },
+      { new: true, upsert: true }
+    );
+
+    if (!employee) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "Contract content updated successfully"
+    });
+  } catch (err) {
+    console.error("Update contract content error:", err);
+    res.status(500).json({ success: false, message: "Failed to update contract content" });
   }
 };
 
@@ -634,7 +705,14 @@ export const downloadContract = async (req, res) => {
       });
     }
 
-    const html = renderContractHTML(employee);
+    // Use edited content if available, otherwise generate default
+    let html;
+    if (employee.contract_agreement?.editedContent) {
+      html = employee.contract_agreement.editedContent;
+    } else {
+      html = renderContractHTML(employee);
+    }
+
     const options = {
       format: "A4",
       border: {

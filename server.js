@@ -27,7 +27,13 @@ const port = process.env.PORT || 5000;
 
 // Security middleware
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      "frame-ancestors": ["'self'", "'unsafe-inline'"],
+      "frame-src": ["'self'", "'unsafe-inline'"],
+    },
+  },
 }));
 
 // Rate limiting
@@ -62,7 +68,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cors({ 
   origin: allowedOrigins, 
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
