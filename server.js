@@ -1,10 +1,11 @@
 import express from "express";
 import connectDB from "./config/db.js";
-import dotenv from "dotenv";
-import cors from "cors";
 import "dotenv/config";
+import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+
+// Route imports
 import adminRoutes from "./routes/AdminRoutes.js";
 import authRoutes from "./routes/AuthRoutes.js";
 import projectRoutes from "./routes/ProjectRoutes.js";
@@ -20,8 +21,6 @@ import employeeTimesheetRoutes from "./routes/EmployeeTimesheetRoutes.js";
 import unitRoutes from "./routes/UnitRoutes.js";
 import settingsRoutes from "./routes/SettingsRoutes.js";
 import backupRoutes from "./routes/BackupRoutes.js";
-
-dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -36,41 +35,39 @@ app.use(helmet({
   },
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: { success: false, message: 'Too many requests, please try again later.' }
+// Rate limiting configuration
+const createRateLimit = (max, message) => rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max,
+  message: { success: false, message }
 });
-app.use('/api/', limiter);
 
-// Auth rate limiting (stricter)
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 login attempts per windowMs
-  message: { success: false, message: 'Too many login attempts, please try again later.' }
-});
+const generalLimiter = createRateLimit(100, 'Too many requests, please try again later.');
+const authLimiter = createRateLimit(5, 'Too many login attempts, please try again later.');
+
+app.use('/api/', generalLimiter);
 app.use('/api/auth/login', authLimiter);
 
-// Allowed Origins
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:5000", 
-  "https://shine-crm-backend.vercel.app",
-  "https://shine-crm-frontend.vercel.app",
-];
-
+// Database connection
 await connectDB();
 
-// Middleware Configuration
-app.use(express.json({ limit: '10mb' })); // Reduced from 50mb
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(cors({ 
-  origin: allowedOrigins, 
+// CORS configuration
+const corsOptions = {
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:5000", 
+    "https://shine-crm-backend.vercel.app",
+    "https://shine-crm-frontend.vercel.app"
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
+
+// Middleware configuration
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cors(corsOptions));
 
 // Routes
 app.use("/api/admin", adminRoutes);

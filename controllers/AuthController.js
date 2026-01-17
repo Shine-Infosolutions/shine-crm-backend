@@ -7,49 +7,38 @@ const generateToken = (userId, role) => {
   return jwt.sign({ userId, role }, process.env.JWT_SECRET, { expiresIn: '24h' });
 };
 
+const createUserResponse = (user, role, token = null) => {
+  const response = {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    isAdmin: role === 'admin',
+    role
+  };
+  
+  if (role === 'employee') {
+    response.employee_id = user.employee_id;
+  }
+  
+  return token ? { success: true, token, user: response } : response;
+};
+
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     // Try admin login first
     const user = await User.findOne({ email }).select('+password');
-    if (user) {
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (isPasswordValid) {
-        const token = generateToken(user._id, 'admin');
-        return res.json({
-          success: true,
-          token,
-          user: {
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            isAdmin: user.isAdmin,
-            role: 'admin'
-          }
-        });
-      }
+    if (user && await bcrypt.compare(password, user.password)) {
+      const token = generateToken(user._id, 'admin');
+      return res.json(createUserResponse(user, 'admin', token));
     }
 
     // Try employee login
     const employee = await Employee.findOne({ email }).select('+password');
-    if (employee) {
-      const isPasswordValid = await bcrypt.compare(password, employee.password);
-      if (isPasswordValid) {
-        const token = generateToken(employee._id, 'employee');
-        return res.json({
-          success: true,
-          token,
-          user: {
-            _id: employee._id,
-            name: employee.name,
-            email: employee.email,
-            employee_id: employee.employee_id,
-            isAdmin: false,
-            role: 'employee'
-          }
-        });
-      }
+    if (employee && await bcrypt.compare(password, employee.password)) {
+      const token = generateToken(employee._id, 'employee');
+      return res.json(createUserResponse(employee, 'employee', token));
     }
 
     return res.status(401).json({ success: false, message: "Invalid email or password" });
@@ -58,31 +47,25 @@ export const login = async (req, res) => {
   }
 };
 
+const createUserAccount = async (userData, isAdmin = false) => {
+  const { name, email, password } = userData;
+  
+  const userExists = await User.findOne({ email });
+  if (userExists) {
+    throw new Error("User already exists");
+  }
+
+  return await User.create({ name, email, password, isAdmin });
+};
+
 export const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    const user = await User.create({
-      name,
-      email,
-      password,
-    });
-
+    const user = await createUserAccount(req.body);
     const token = generateToken(user._id, 'admin');
-
+    
     res.status(201).json({
       token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
-      }
+      user: createUserResponse(user, 'admin')
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -91,28 +74,11 @@ export const register = async (req, res) => {
 
 export const createAdmin = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    const admin = await User.create({
-      name,
-      email,
-      password,
-      isAdmin: true,
-    });
-
+    const admin = await createUserAccount(req.body, true);
+    
     res.status(201).json({
       message: "Admin created successfully",
-      user: {
-        _id: admin._id,
-        name: admin.name,
-        email: admin.email,
-        isAdmin: admin.isAdmin,
-      }
+      user: createUserResponse(admin, 'admin')
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -121,28 +87,11 @@ export const createAdmin = async (req, res) => {
 
 export const createUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    const user = await User.create({
-      name,
-      email,
-      password,
-      isAdmin: false,
-    });
-
+    const user = await createUserAccount(req.body, false);
+    
     res.status(201).json({
       message: "User created successfully",
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
-      }
+      user: createUserResponse(user, 'admin')
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

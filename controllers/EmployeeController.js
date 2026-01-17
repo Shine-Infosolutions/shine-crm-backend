@@ -3,7 +3,40 @@ import { uploadToCloudinary, deleteFromCloudinary } from '../utils/upload.js';
 import createHttpError from 'http-errors';
 import pdf from 'html-pdf';
 import { renderContractHTML } from '../utils/contract.utils.js';
-import _ from 'lodash';
+
+// Helper function to get file source
+const getFileSource = (file) => {
+  return file.path || file.tempFilePath || (file.buffer && Buffer.isBuffer(file.buffer) && file.buffer) || null;
+};
+
+// Helper function to upload files
+const uploadFiles = async (files, folder = "employees") => {
+  const fileArray = Array.isArray(files) ? files : [files];
+  const uploads = await Promise.all(
+    fileArray.map(file => {
+      const src = getFileSource(file);
+      if (!src) {
+        console.warn('Skipping upload: no file buffer or path');
+        return null;
+      }
+      return uploadToCloudinary(src, folder);
+    })
+  );
+  
+  const results = uploads.filter(r => r !== null);
+  return results.length === 1 ? results[0] : results;
+};
+
+// Helper function to safely delete from Cloudinary
+const safeDeleteFromCloudinary = async (publicId) => {
+  if (publicId) {
+    try {
+      await deleteFromCloudinary(publicId);
+    } catch (err) {
+      console.warn('Failed to delete from Cloudinary:', err.message);
+    }
+  }
+};
 
 // Process files and upload to Cloudinary
 export const processFiles = async (req) => {
