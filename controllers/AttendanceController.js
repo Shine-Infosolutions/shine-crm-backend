@@ -257,26 +257,60 @@ export const getDayWorkHistory = async (req, res) => {
 // Manual Checkout
 export const checkout = async (req, res) => {
   try {
+    console.log('Checkout request received:', req.body);
+    
     const { employee_id, checkout_time } = req.body;
+    
+    if (!employee_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'employee_id is required'
+      });
+    }
+
+    // Validate employee_id format
+    if (!mongoose.Types.ObjectId.isValid(employee_id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid employee_id format'
+      });
+    }
+    
+    // Check if employee exists
+    const employee = await Employee.findById(employee_id);
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found'
+      });
+    }
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    console.log('Looking for attendance on date:', today, 'for employee:', employee_id);
 
     const attendance = await Attendance.findOne({
       employee_id,
       date: today
     });
 
+    console.log('Found attendance record:', attendance);
+
     if (!attendance) {
       return res.status(404).json({
         success: false,
-        message: 'No time in record found for today'
+        message: 'No check-in record found for today. Please check in first before checking out.'
       });
     }
 
     if (attendance.time_out) {
       return res.status(400).json({
         success: false,
-        message: 'Already checked out today'
+        message: 'Already checked out today',
+        data: {
+          time_out: attendance.time_out,
+          is_manual_checkout: attendance.is_manual_checkout
+        }
       });
     }
 
@@ -284,12 +318,15 @@ export const checkout = async (req, res) => {
     attendance.is_manual_checkout = !!checkout_time;
     await attendance.save();
 
+    console.log('Checkout successful:', attendance);
+
     res.status(200).json({
       success: true,
       data: attendance,
       message: 'Checkout recorded successfully'
     });
   } catch (error) {
+    console.error('Checkout error:', error);
     res.status(500).json({
       success: false,
       message: error.message
