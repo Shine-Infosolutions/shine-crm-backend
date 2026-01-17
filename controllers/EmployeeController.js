@@ -16,7 +16,6 @@ const uploadFiles = async (files, folder = "employees") => {
     fileArray.map(file => {
       const src = getFileSource(file);
       if (!src) {
-        console.warn('Skipping upload: no file buffer or path');
         return null;
       }
       return uploadToCloudinary(src, folder);
@@ -33,7 +32,6 @@ const safeDeleteFromCloudinary = async (publicId) => {
     try {
       await deleteFromCloudinary(publicId);
     } catch (err) {
-      console.warn('Failed to delete from Cloudinary:', err.message);
     }
   }
 };
@@ -61,7 +59,6 @@ export const processFiles = async (req) => {
     const uploads = await Promise.all(files.map(file => {
       const src = getSource(file);
       if (!src) {
-        console.warn(`Skipping upload for ${field}: no file buffer or path`);
         return null;
       }
       return uploadToCloudinary(src, "employees");
@@ -90,7 +87,6 @@ export const processFiles = async (req) => {
       const uploads = await Promise.all(files.map(file => {
         const src = getSource(file);
         if (!src) {
-          console.warn(`Skipping upload for ${field}: no file buffer or path`);
           return null;
         }
         return uploadToCloudinary(src, "employees");
@@ -167,7 +163,6 @@ export const createEmployee = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error creating employee:", error);
 
     // Validation error
     if (error.name === "ValidationError") {
@@ -244,7 +239,6 @@ export const getEmployeeById = async (req, res) => {
       data: employee
     });
   } catch (error) {
-    console.error('Error in getEmployeeById:', error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -285,7 +279,6 @@ export const updateEmployee = async (req, res) => {
             try {
               await deleteFromCloudinary(employee.profile_image.public_id);
             } catch (err) {
-              console.warn('Failed to delete old profile image:', err.message);
             }
           }
           return fileData.profile_image;
@@ -298,7 +291,6 @@ export const updateEmployee = async (req, res) => {
             try {
               await deleteFromCloudinary(employee.aadhar_document.public_id);
             } catch (err) {
-              console.warn('Failed to delete old aadhar document:', err.message);
             }
           }
           return fileData.aadhar_document;
@@ -311,7 +303,6 @@ export const updateEmployee = async (req, res) => {
             try {
               await deleteFromCloudinary(employee.pan_document.public_id);
             } catch (err) {
-              console.warn('Failed to delete old pan document:', err.message);
             }
           }
           return fileData.pan_document;
@@ -334,7 +325,6 @@ export const updateEmployee = async (req, res) => {
           try {
             await deleteFromCloudinary(employee.documents[field].public_id);
           } catch (err) {
-            console.warn(`Failed to delete old ${field}:`, err.message);
           }
         }
         employeeData.documents[field] = fileData[field];
@@ -369,7 +359,6 @@ export const updateEmployee = async (req, res) => {
               try {
                 await deleteFromCloudinary(existing.experience_letter.public_id);
               } catch (err) {
-                console.warn('Failed to delete old experience letter:', err.message);
               }
             }
             return { ...exp, experience_letter: uploadedLetter };
@@ -400,7 +389,6 @@ export const updateEmployee = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error updating employee:', error);
     res.status(400).json({
       success: false,
       message: error.message || "Update failed"
@@ -463,7 +451,6 @@ export const deleteEmployee = async (req, res) => {
       message: 'Employee deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting employee:', error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -548,7 +535,6 @@ export const deleteDocument = async (req, res) => {
       message: 'Document deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting document:', error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -578,7 +564,6 @@ export const toggleCurrentEmployee = async (req, res) => {
       data: employee,
     });
   } catch (error) {
-    console.error("Toggle Error:", error);
     res.status(500).json({
       success: false,
       message: "Server error while toggling is_current_employee",
@@ -605,7 +590,6 @@ export const previewContract = async (req, res) => {
     res.set('Content-Type', 'text/html');
     res.send(html);
   } catch (err) {
-    console.error("Contract preview error:", err);
     res.status(500).json({ message: "Failed to generate contract preview" });
   }
 };
@@ -633,7 +617,6 @@ export const getContractContent = async (req, res) => {
       content: html
     });
   } catch (err) {
-    console.error("Get contract content error:", err);
     res.status(500).json({ success: false, message: "Failed to get contract content" });
   }
 };
@@ -664,7 +647,6 @@ export const updateContractContent = async (req, res) => {
       message: "Contract content updated successfully"
     });
   } catch (err) {
-    console.error("Update contract content error:", err);
     res.status(500).json({ success: false, message: "Failed to update contract content" });
   }
 };
@@ -774,7 +756,6 @@ export const downloadContract = async (req, res) => {
 
     pdf.create(html, options).toBuffer((err, buffer) => {
       if (err) {
-        console.error('PDF generation error:', err);
         return res.status(500).json({
           success: false,
           message: 'PDF generation failed'
@@ -790,7 +771,6 @@ export const downloadContract = async (req, res) => {
       res.send(buffer);
     });
   } catch (error) {
-    console.error('Contract PDF generation error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error while generating contract'
@@ -861,7 +841,6 @@ export const downloadContract = async (req, res) => {
 
 //     res.status(200).json({ message: "Terms and Conditions accepted." });
 //   } catch (error) {
-//     console.error("Error in acceptTerms:", error);
 //     res.status(500).json({ message: "Internal Server Error" });
 //   }
 // };
@@ -878,7 +857,6 @@ export const downloadContract = async (req, res) => {
 //       accepted_at: employee.terms_and_conditions?.accepted_at || null,
 //     });
 //   } catch (error) {
-//     console.error("Error in getTermsStatus:", error);
 //     res.status(500).json({ message: "Internal Server Error" });
 //   }
 // };

@@ -19,11 +19,9 @@ export const uploadToCloudinary = async (filePath, folder = "employees") => {
     });
     // remove temp file after upload
     fs.unlink(filePath, err => {
-      if (err) console.warn('Temp file cleanup error:', err);
     });
     return result;
   } catch (err) {
-    console.error("Cloudinary upload error:", err);
     throw err;
   }
 };
@@ -32,7 +30,6 @@ export const deleteFromCloudinary = async (public_id) => {
   try {
     await cloudinary.v2.uploader.destroy(public_id);
   } catch (error) {
-    console.error(`Cloudinary delete error: ${error.message}`);
     throw error;
   }
 };

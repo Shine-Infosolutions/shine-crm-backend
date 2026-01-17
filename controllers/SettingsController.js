@@ -120,7 +120,6 @@ export const backupData = async (req, res) => {
 
     res.json({ success: true, data, count: data.length });
   } catch (error) {
-    console.error(`Error backing up ${req.params.dataType}:`, error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

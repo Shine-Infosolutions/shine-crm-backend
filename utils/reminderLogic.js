@@ -47,7 +47,6 @@ export const runReminderForAllLeads = async () => {
             data: { leadId: lead._id.toString(), name: lead.name },
           });
         } catch (err) {
-          console.error("❌ Failed:", token, err.message);
         }
       }
     }

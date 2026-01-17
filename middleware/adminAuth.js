@@ -8,7 +8,6 @@ export const authenticate = async (req, res, next) => {
     const token = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : authHeader;
     
     if (!token) {
-      console.log('No token provided in request');
       return res.status(401).json({ success: false, message: 'Access denied. No token provided.' });
     }
 
@@ -17,14 +16,12 @@ export const authenticate = async (req, res, next) => {
     if (decoded.role === 'admin') {
       const user = await User.findById(decoded.userId);
       if (!user) {
-        console.log('Admin user not found for token:', decoded.userId);
         return res.status(401).json({ success: false, message: 'Invalid token.' });
       }
       req.user = { ...user.toObject(), role: 'admin' };
     } else {
       const employee = await Employee.findById(decoded.userId);
       if (!employee) {
-        console.log('Employee not found for token:', decoded.userId);
         return res.status(401).json({ success: false, message: 'Invalid token.' });
       }
       req.user = { ...employee.toObject(), role: 'employee' };
@@ -32,7 +29,6 @@ export const authenticate = async (req, res, next) => {
     
     next();
   } catch (error) {
-    console.log('Authentication error:', error.message);
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ success: false, message: 'Token expired.' });
     }

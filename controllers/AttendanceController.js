@@ -5,7 +5,6 @@ import mongoose from 'mongoose';
 // Time In
 export const timeIn = async (req, res) => {
   try {
-    console.log('Time-in request received:', req.body);
     
     const { employee_id } = req.body;
     
@@ -18,11 +17,9 @@ export const timeIn = async (req, res) => {
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    console.log('Today date:', today);
     
     // Check if employee exists
     const employee = await Employee.findById(employee_id);
-    console.log('Employee found:', employee ? 'Yes' : 'No');
     if (!employee) {
       return res.status(404).json({
         success: false,
@@ -35,7 +32,6 @@ export const timeIn = async (req, res) => {
       employee_id,
       date: today
     });
-    console.log('Existing attendance:', existingAttendance ? 'Found' : 'None');
 
     if (existingAttendance) {
       return res.status(400).json({
@@ -51,7 +47,6 @@ export const timeIn = async (req, res) => {
     });
 
     await attendance.save();
-    console.log('Attendance saved successfully');
 
     res.status(201).json({
       success: true,
@@ -59,7 +54,6 @@ export const timeIn = async (req, res) => {
       message: 'Time in recorded successfully'
     });
   } catch (error) {
-    console.error('Time-in error:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -130,7 +124,6 @@ export const getAttendance = async (req, res) => {
       filter.date = { $gte: startDate, $lte: endDate };
     }
 
-    console.log('Attendance filter:', filter);
     
     const attendance = await Attendance.find(filter)
       .populate('employee_id', 'name employee_id')
@@ -141,7 +134,6 @@ export const getAttendance = async (req, res) => {
       data: attendance
     });
   } catch (error) {
-    console.error('Attendance error:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -328,7 +320,6 @@ export const getEmployeeAttendance = async (req, res) => {
       filter.date = { $gte: startDate, $lte: endDate };
     }
 
-    console.log('Employee attendance filter:', filter);
     
     const attendance = await Attendance.find(filter)
       .populate('employee_id', 'name employee_id')
@@ -339,7 +330,6 @@ export const getEmployeeAttendance = async (req, res) => {
       data: attendance
     });
   } catch (error) {
-    console.error('Employee attendance error:', error);
     res.status(500).json({
       success: false,
       message: error.message
