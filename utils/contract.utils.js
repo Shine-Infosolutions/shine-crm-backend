@@ -240,7 +240,13 @@ const contractTemplateSource = `
       <div class="signature-line">
         <p>Employee Name: {{employeeName}}</p>
         <p>Date: {{today}}</p>
-        <p>Signature: ___________________________</p>
+        {{#if employeeSignature}}
+          <p>Signature:</p>
+          <img src="{{employeeSignature}}" alt="Employee Signature" style="height: 40px; border: 1px solid #ccc; margin: 5px 0;" />
+          <p><em>Digitally signed on {{acceptanceDate}}</em></p>
+        {{else}}
+          <p>Signature: ___________________________</p>
+        {{/if}}
       </div>
     </div>
 
@@ -281,6 +287,7 @@ export const renderContractHTML = (employee) => {
       0,
     salaryDate: contract.compensation?.salary_date || "5th",
     noticePeriodDays: contract.termination?.notice_period_days || 30,
+    employeeSignature: contract.acceptance?.signature || null,
     acceptanceDate: contract.acceptance?.accepted_at
       ? formatDate(contract.acceptance.accepted_at)
       : null,

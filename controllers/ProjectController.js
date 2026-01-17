@@ -1,11 +1,27 @@
-// server/controllers/ProjectController.js
 import Project from "../models/Project.js";
 
 // Get all projects
 export const getProjects = async (req, res) => {
   try {
-    const projects = await Project.find({});
-    res.json(projects);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    const [projects, total] = await Promise.all([
+      Project.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Project.countDocuments()
+    ]);
+    
+    res.json({
+      success: true,
+      data: projects,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -41,13 +57,10 @@ export const createProject = async (req, res) => {
 // Update a project by ID
 export const updateProject = async (req, res) => {
   try {
-    const { id } = req.params;
-    const updateData = req.body;
-
     const updatedProject = await Project.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true } // Return the updated document
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
     );
 
     if (!updatedProject) {
@@ -56,9 +69,7 @@ export const updateProject = async (req, res) => {
 
     res.status(200).json({ success: true, updatedProject });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error updating project", error: error.message });
+    res.status(500).json({ message: "Error updating project", error: error.message });
   }
 };
 

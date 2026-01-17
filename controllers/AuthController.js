@@ -1,64 +1,91 @@
-// server/controllers/authController.js
 import User from "../models/User.js";
+import Employee from "../models/Employee.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+const generateToken = (userId, role) => 
+  jwt.sign({ userId, role }, process.env.JWT_SECRET, { expiresIn: '365d' });
+
+const createUserResponse = (user, role, token = null) => {
+  const response = {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    isAdmin: role === 'admin',
+    role,
+    ...(role === 'employee' && { employee_id: user.employee_id })
+  };
+  
+  return token ? { success: true, token, user: response } : response;
+};
 
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log("Login attempt with:", email);
 
-    // Find user by email
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      console.log("User not found");
-      return res.status(401).json({ message: "Invalid email or password" });
+    // Try admin login first
+    const user = await User.findOne({ email }).select('+password');
+    if (user && await bcrypt.compare(password, user.password)) {
+      const token = generateToken(user._id, 'admin');
+      return res.json(createUserResponse(user, 'admin', token));
     }
 
-    console.log("User found, comparing passwords");
-    console.log("Input password:", password);
-    console.log("Stored password:", user.password);
-
-    // Check if password matches
-    if (password === user.password) {
-      console.log("Password match successful");
-      return res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
-      });
-    } else {
-      console.log("Password match failed");
-      return res.status(401).json({ message: "Invalid email or password" });
+    // Try employee login
+    const employee = await Employee.findOne({ email }).select('+password');
+    if (employee && await bcrypt.compare(password, employee.password)) {
+      const token = generateToken(employee._id, 'employee');
+      return res.json(createUserResponse(employee, 'employee', token));
     }
+
+    return res.status(401).json({ success: false, message: "Invalid email or password" });
   } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
+};
+
+const createUserAccount = async (userData, isAdmin = false) => {
+  const { name, email, password } = userData;
+  
+  const userExists = await User.findOne({ email });
+  if (userExists) throw new Error("User already exists");
+
+  return await User.create({ name, email, password, isAdmin });
 };
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-
-    // Check if user already exists
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    // Create new user
-    const user = await User.create({
-      name,
-      email,
-      password, // In production, hash this password
-    });
-
+    const user = await createUserAccount(req.body);
+    const token = generateToken(user._id, 'admin');
+    
     res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin,
+      token,
+      user: createUserResponse(user, 'admin')
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const createAdmin = async (req, res) => {
+  try {
+    const admin = await createUserAccount(req.body, true);
+    
+    res.status(201).json({
+      message: "Admin created successfully",
+      user: createUserResponse(admin, 'admin')
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const createUser = async (req, res) => {
+  try {
+    const user = await createUserAccount(req.body, false);
+    
+    res.status(201).json({
+      message: "User created successfully",
+      user: createUserResponse(user, 'admin')
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

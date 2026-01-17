@@ -1,23 +1,39 @@
-// server/controllers/LeadController.js
 import Lead from "../models/Lead.js";
 
 // Get all leads
 export const getLeads = async (req, res) => {
   try {
-    const leads = await Lead.find().sort({ createdAt: -1 });
-    res.status(200).json(leads);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    const [leads, total] = await Promise.all([
+      Lead.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Lead.countDocuments()
+    ]);
+    
+    res.status(200).json({
+      success: true,
+      data: leads,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching leads", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 };
 
 // Get a single lead by ID
 export const getLeadById = async (req, res) => {
   try {
-    const { id } = req.params;
-    const lead = await Lead.findById(id);
+    const lead = await Lead.findById(req.params.id);
 
     if (!lead) {
       return res.status(404).json({ message: "Lead not found" });
@@ -25,34 +41,32 @@ export const getLeadById = async (req, res) => {
 
     res.status(200).json(lead);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching lead", error: error.message });
+    res.status(500).json({ message: "Error fetching lead", error: error.message });
   }
 };
 
 // Create a new lead
 export const createLead = async (req, res) => {
   try {
-    const newLead = new Lead(req.body);
-    const savedLead = await newLead.save();
-    res
-      .status(201)
-      .json({ success: true, savedLead, message: "Leaded added successfully" });
+    const savedLead = await Lead.create(req.body);
+    res.status(201).json({ 
+      success: true, 
+      savedLead, 
+      message: "Lead added successfully" 
+    });
   } catch (error) {
-    res
-      .status(400)
-      .json({ message: "Error creating lead", error: error.message });
+    res.status(400).json({ message: "Error creating lead", error: error.message });
   }
 };
 
 // Update a lead
 export const updateLead = async (req, res) => {
   try {
-    const { id } = req.params;
-    const updatedLead = await Lead.findByIdAndUpdate(id, req.body, {
-      new: true,
-    });
+    const updatedLead = await Lead.findByIdAndUpdate(
+      req.params.id, 
+      req.body, 
+      { new: true, runValidators: true }
+    );
 
     if (!updatedLead) {
       return res.status(404).json({ message: "Lead not found" });
@@ -60,17 +74,14 @@ export const updateLead = async (req, res) => {
 
     res.status(200).json(updatedLead);
   } catch (error) {
-    res
-      .status(400)
-      .json({ message: "Error updating lead", error: error.message });
+    res.status(400).json({ message: "Error updating lead", error: error.message });
   }
 };
 
 // Delete a lead
 export const deleteLead = async (req, res) => {
   try {
-    const { id } = req.params;
-    const deletedLead = await Lead.findByIdAndDelete(id);
+    const deletedLead = await Lead.findByIdAndDelete(req.params.id);
 
     if (!deletedLead) {
       return res.status(404).json({ message: "Lead not found" });
@@ -78,9 +89,7 @@ export const deleteLead = async (req, res) => {
 
     res.status(200).json({ message: "Lead deleted successfully" });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error deleting lead", error: error.message });
+    res.status(500).json({ message: "Error deleting lead", error: error.message });
   }
 };
 
@@ -89,13 +98,19 @@ export const exportLeadsToCSV = async (req, res) => {
   try {
     const { employeeId } = req.query;
     const filter = employeeId ? { assignedEmployee: employeeId } : {};
-    const leads = await Lead.find(filter).populate('assignedEmployee', 'name').sort({ createdAt: -1 });
+    const leads = await Lead.find(filter)
+      .populate('assignedEmployee', 'name')
+      .sort({ createdAt: -1 });
     
-    const headers = ['Company Name', 'Address', 'Mobile Number', 'Status', 'Meeting Time and Date', 'Type of Project', 'Call Date', 'Client Requested Call Date', 'Notes', 'Reference'];
-    const csvRows = [headers.join(',')];
+    const headers = [
+      'Company Name', 'Address', 'Mobile Number', 'Status', 
+      'Meeting Time and Date', 'Type of Project', 'Call Date', 
+      'Client Requested Call Date', 'Notes', 'Reference'
+    ];
     
-    leads.forEach(lead => {
-      const row = [
+    const csvRows = [
+      headers.join(','),
+      ...leads.map(lead => [
         `"${lead.name || ''}"`,
         `"${lead.address || ''}"`,
         `"${lead.number || ''}"`,
@@ -106,16 +121,14 @@ export const exportLeadsToCSV = async (req, res) => {
         `"${lead.clientRequestedCallDate ? new Date(lead.clientRequestedCallDate).toLocaleDateString() : ''}"`,
         `"${lead.notes || ''}"`,
         `"${lead.reference || ''}"`
-      ];
-      csvRows.push(row.join(','));
-    });
+      ].join(','))
+    ];
 
-    const csv = csvRows.join('\n');
     const filename = employeeId ? `leads-employee-${employeeId}.csv` : 'leads-all.csv';
     
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-    res.status(200).send(csv);
+    res.status(200).send(csvRows.join('\n'));
   } catch (error) {
     res.status(500).json({ message: "Error exporting leads", error: error.message });
   }

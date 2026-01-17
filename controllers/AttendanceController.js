@@ -1,11 +1,22 @@
 import Attendance from '../models/Attendance.js';
 import Employee from '../models/Employee.js';
+import mongoose from 'mongoose';
 
 // Time In
 export const timeIn = async (req, res) => {
   try {
+    
     const { employee_id } = req.body;
-    const today = new Date().setHours(0, 0, 0, 0);
+    
+    if (!employee_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'employee_id is required'
+      });
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
     // Check if employee exists
     const employee = await Employee.findById(employee_id);
@@ -54,7 +65,8 @@ export const timeIn = async (req, res) => {
 export const timeOut = async (req, res) => {
   try {
     const { employee_id } = req.body;
-    const today = new Date().setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const attendance = await Attendance.findOne({
       employee_id,
@@ -97,16 +109,22 @@ export const getAttendance = async (req, res) => {
     const { employee_id, date, month, year } = req.query;
     let filter = {};
 
-    if (employee_id) filter.employee_id = employee_id;
+    // Only add employee_id to filter if it's a valid ObjectId
+    if (employee_id && employee_id !== 'undefined' && employee_id !== 'null' && mongoose.Types.ObjectId.isValid(employee_id)) {
+      filter.employee_id = employee_id;
+    }
     
     if (date) {
-      filter.date = new Date(date).setHours(0, 0, 0, 0);
+      const targetDate = new Date(date);
+      targetDate.setHours(0, 0, 0, 0);
+      filter.date = targetDate;
     } else if (month && year) {
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 0);
       filter.date = { $gte: startDate, $lte: endDate };
     }
 
+    
     const attendance = await Attendance.find(filter)
       .populate('employee_id', 'name employee_id')
       .sort({ date: -1 });
@@ -127,7 +145,8 @@ export const getAttendance = async (req, res) => {
 export const getTodayAttendance = async (req, res) => {
   try {
     const { employee_id } = req.params;
-    const today = new Date().setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const attendance = await Attendance.findOne({
       employee_id,
@@ -150,7 +169,8 @@ export const getTodayAttendance = async (req, res) => {
 export const getRunningTime = async (req, res) => {
   try {
     const { employee_id } = req.params;
-    const today = new Date().setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const attendance = await Attendance.findOne({
       employee_id,
@@ -238,7 +258,8 @@ export const getDayWorkHistory = async (req, res) => {
 export const checkout = async (req, res) => {
   try {
     const { employee_id, checkout_time } = req.body;
-    const today = new Date().setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const attendance = await Attendance.findOne({
       employee_id,
@@ -276,6 +297,45 @@ export const checkout = async (req, res) => {
   }
 };
 
+// Get employee's own attendance records
+export const getEmployeeAttendance = async (req, res) => {
+  try {
+    const employeeId = req.user._id; // Get from authenticated user
+    const { date, month, year } = req.query;
+    let filter = { employee_id: employeeId };
+    
+    if (date) {
+      const targetDate = new Date(date);
+      targetDate.setHours(0, 0, 0, 0);
+      filter.date = targetDate;
+    } else if (month && year) {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0);
+      filter.date = { $gte: startDate, $lte: endDate };
+    } else {
+      // Default to last 3 months if no date filter
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 3);
+      filter.date = { $gte: startDate, $lte: endDate };
+    }
+
+    
+    const attendance = await Attendance.find(filter)
+      .populate('employee_id', 'name employee_id')
+      .sort({ date: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: attendance
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
 // Get employee work history (date range)
 export const getWorkHistory = async (req, res) => {
   try {

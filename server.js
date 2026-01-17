@@ -1,9 +1,10 @@
 import express from "express";
 import connectDB from "./config/db.js";
-import dotenv from "dotenv";
-import cors from "cors";
 import "dotenv/config";
-//import fileUpload from "express-fileupload";
+import cors from "cors";
+import helmet from "helmet";
+
+// Route imports
 import adminRoutes from "./routes/AdminRoutes.js";
 import authRoutes from "./routes/AuthRoutes.js";
 import projectRoutes from "./routes/ProjectRoutes.js";
@@ -17,29 +18,35 @@ import attendanceRoutes from "./routes/AttendanceRoutes.js";
 import taskRoutes from "./routes/TaskRoutes.js";
 import employeeTimesheetRoutes from "./routes/EmployeeTimesheetRoutes.js";
 import unitRoutes from "./routes/UnitRoutes.js";
-
-
-//import "./config/sendReminders.js"
-dotenv.config();
+import settingsRoutes from "./routes/SettingsRoutes.js";
+import backupRoutes from "./routes/BackupRoutes.js";
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Allowed Origins
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://shine-crm-backend.vercel.app",
-  "https://shine-crm-frontend.vercel.app",
-];
-
+// Database connection
 await connectDB();
 
-// Middleware Configuration
-app.use(express.json());
-app.use(cors({ origin: allowedOrigins, credentials: true }));
-// app.use(fileUpload({
-//   useTempFiles: true,
-//   tempFileDir: "/tmp/",
-// }));
+// Middleware configuration
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false,
+  frameguard: false
+}));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:5000", 
+    "https://shine-crm-backend.vercel.app",
+    "https://shine-crm-frontend.vercel.app"
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Routes
 app.use("/api/admin", adminRoutes);
@@ -55,12 +62,18 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/employee-timesheet", employeeTimesheetRoutes);
 app.use("/api/units", unitRoutes);
-
+app.use("/api/settings", settingsRoutes);
+app.use("/api/backup", backupRoutes);
 
 app.get("/", (req, res) => {
-  res.send("API is working..");
+  res.json({ message: "Shine CRM API is running securely" });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  res.status(500).json({ success: false, message: 'Something went wrong!' });
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server is running securely on port ${port}`);
 });

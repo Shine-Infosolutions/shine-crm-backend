@@ -8,14 +8,15 @@ import {
   deleteLead,
   exportLeadsToCSV,
 } from "../controllers/LeadController.js";
+import { authenticate, adminAuth } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
-router.get("/", getLeads);
-router.get("/export/csv", exportLeadsToCSV);
-router.get("/:id", getLeadById);
-router.post("/", createLead);
-router.put("/:id", updateLead);
-router.delete("/:id", deleteLead);
+router.get("/", authenticate, getLeads);
+router.get("/export/csv", adminAuth, exportLeadsToCSV);
+router.get("/:id", authenticate, getLeadById);
+router.post("/", authenticate, createLead);
+router.put("/:id", authenticate, updateLead);
+router.delete("/:id", adminAuth, deleteLead);
 
 export default router;

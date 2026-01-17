@@ -1,4 +1,13 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+
+// Counter model for auto-incrementing employee IDs
+const counterSchema = new mongoose.Schema({
+  _id: String,
+  seq: { type: Number, default: 0 }
+});
+
+const Counter = mongoose.models.Counter || mongoose.model('Counter', counterSchema);
 
 const employeeSchema = new mongoose.Schema({
   employee_id: { type: String, unique: true },
@@ -7,7 +16,7 @@ const employeeSchema = new mongoose.Schema({
     public_id: String,
     url: String,
   },
-  password: { type: String, required: true },
+  password: { type: String, required: true, select: false },
 
   contact1: { type: String, required: true },
   contact2: { type: String },
@@ -164,6 +173,9 @@ const employeeSchema = new mongoose.Schema({
       accepted_at: { type: Date },
       signature: { type: String },
     },
+
+    editedContent: { type: String }, // For custom edited contract content
+    lastEdited: { type: Date }, // When contract was last edited
   },
 
   terms_and_conditions: {
@@ -181,16 +193,21 @@ employeeSchema.pre("save", async function (next) {
   // Update timestamp
   this.updated_at = Date.now();
 
+  // Hash password if modified
+  if (this.isModified('password')) {
+    this.password = await bcrypt.hash(this.password, 12);
+  }
+
   // Only generate ID & fill contract for new employees
   if (this.isNew) {
-    const Employee = mongoose.model("Employee");
-    const latestEmployee = await Employee.findOne().sort({ created_at: -1 });
-    let nextId = 1;
-    if (latestEmployee?.employee_id) {
-      const num = parseInt(latestEmployee.employee_id.replace('emp', ''), 10);
-      if (!isNaN(num)) nextId = num + 1;
-    }
-    this.employee_id = `emp${String(nextId).padStart(2, '0')}`;
+    // Use atomic counter for employee ID generation
+    const counter = await Counter.findByIdAndUpdate(
+      'employee_id',
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
+    
+    this.employee_id = `emp${String(counter.seq).padStart(2, '0')}`;
 
     // Auto-fill contract fields
     this.contract_agreement.effective_date = this.work_start_date;

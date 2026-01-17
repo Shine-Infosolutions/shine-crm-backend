@@ -10,20 +10,21 @@ import {
   saveDailySummary,
   getEmployeeTasks
 } from "../controllers/TaskController.js";
+import { authenticate, adminAuth } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
 // Task routes
-router.get("/present-employees", getPresentEmployees);
-router.post("/assign", assignTask);
-router.get("/", getTasks);
-router.patch("/:id/status", updateTaskStatus);
+router.get("/present-employees", adminAuth, getPresentEmployees);
+router.post("/assign", adminAuth, assignTask);
+router.get("/", authenticate, getTasks);
+router.patch("/:id/status", authenticate, updateTaskStatus);
 
 // New task management routes
-router.get("/available", getAvailableTasks);
-router.patch("/:id/take", takeTask);
-router.patch("/:id/progress", saveProgress);
-router.patch("/:id/daily-summary", saveDailySummary);
-router.get("/employee/:employee_id", getEmployeeTasks);
+router.get("/available", authenticate, getAvailableTasks);
+router.patch("/:id/take", authenticate, takeTask);
+router.patch("/:id/progress", authenticate, saveProgress);
+router.patch("/:id/daily-summary", authenticate, saveDailySummary);
+router.get("/employee/:employee_id", authenticate, getEmployeeTasks);
 
 export default router;

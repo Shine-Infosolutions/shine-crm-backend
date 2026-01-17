@@ -28,8 +28,27 @@ export const createInvoice = async (req, res) => {
 // Get all invoices
 export const getAllInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.find().sort({ createdAt: -1 });
-    res.json({ success: true, data: invoices });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    const invoices = await Invoice.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await Invoice.countDocuments();
+    
+    res.json({
+      success: true,
+      data: invoices,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -100,22 +119,19 @@ export const updateInvoiceNotes = async (req, res) => {
 
 // Get next invoice number
 export const getNextInvoiceNumber = async (req, res) => {
-    try {
-      const latest = await Invoice.findOne().sort({ createdAt: -1 });
-  
-      let lastNumber = 0;
-      if (latest && latest.invoiceNumber) {
-        const parts = latest.invoiceNumber.split("-");
-        if (parts.length === 2 && !isNaN(parts[1])) {
-          lastNumber = parseInt(parts[1]);
-        }
-      }
-  
-      const nextNumber = lastNumber + 1;
-      const nextInvoiceNumber = `INV-${nextNumber}`;
-      res.json({ nextInvoiceNumber });
-    } catch (err) {
-      res.status(500).json({ error: "Could not generate next invoice number" });
-    }
-  };
+  try {
+    const Counter = (await import('mongoose')).default.model('Counter', new (await import('mongoose')).default.Schema({
+      _id: String,
+      seq: { type: Number, default: 0 }
+    }));
+    
+    const counter = await Counter.findById('invoice_number');
+    const nextNumber = counter ? counter.seq + 1 : 1;
+    const nextInvoiceNumber = `INV-${nextNumber}`;
+    
+    res.json({ nextInvoiceNumber });
+  } catch (err) {
+    res.status(500).json({ error: "Could not generate next invoice number" });
+  }
+};
   
