@@ -5,26 +5,8 @@ import pdf from 'html-pdf';
 import { renderContractHTML } from '../utils/contract.utils.js';
 
 // Helper function to get file source
-const getFileSource = (file) => {
-  return file.path || file.tempFilePath || (file.buffer && Buffer.isBuffer(file.buffer) && file.buffer) || null;
-};
-
-// Helper function to upload files
-const uploadFiles = async (files, folder = "employees") => {
-  const fileArray = Array.isArray(files) ? files : [files];
-  const uploads = await Promise.all(
-    fileArray.map(file => {
-      const src = getFileSource(file);
-      if (!src) {
-        return null;
-      }
-      return uploadToCloudinary(src, folder);
-    })
-  );
-  
-  const results = uploads.filter(r => r !== null);
-  return results.length === 1 ? results[0] : results;
-};
+const getFileSource = (file) => 
+  file.path || file.tempFilePath || (file.buffer && Buffer.isBuffer(file.buffer) && file.buffer) || null;
 
 // Helper function to safely delete from Cloudinary
 const safeDeleteFromCloudinary = async (publicId) => {
@@ -32,6 +14,7 @@ const safeDeleteFromCloudinary = async (publicId) => {
     try {
       await deleteFromCloudinary(publicId);
     } catch (err) {
+      // Silent fail
     }
   }
 };
@@ -41,30 +24,16 @@ export const processFiles = async (req) => {
   const fileData = {};
   if (!req.files) return fileData;
 
-  // Helper to pick the right source
-  const getSource = (file) =>
-    file.path           // multer.diskStorage
-    || file.tempFilePath // express-fileupload
-    || (file.buffer && Buffer.isBuffer(file.buffer) && file.buffer) // multer.memoryStorage
-    || null;
-
   // Process regular files (non-experience_letter)
   for (const field of Object.keys(req.files)) {
     if (field.startsWith('experience_letter_')) continue;
     
-    const files = Array.isArray(req.files[field])
-      ? req.files[field]
-      : [req.files[field]];
-
+    const files = Array.isArray(req.files[field]) ? req.files[field] : [req.files[field]];
     const uploads = await Promise.all(files.map(file => {
-      const src = getSource(file);
-      if (!src) {
-        return null;
-      }
-      return uploadToCloudinary(src, "employees");
+      const src = getFileSource(file);
+      return src ? uploadToCloudinary(src, "employees") : null;
     }));
 
-    // Filter out any nulls, then unwrap singletons
     const results = uploads.filter(r => r !== null);
     fileData[field] = results.length === 1 ? results[0] : results;
   }
@@ -72,26 +41,16 @@ export const processFiles = async (req) => {
   // Process experience_letter_* fields
   const expFields = Object.keys(req.files)
     .filter(f => f.startsWith('experience_letter_'))
-    .sort((a, b) => {
-      const ai = +a.split('_')[2], bi = +b.split('_')[2];
-      return ai - bi;
-    });
+    .sort((a, b) => +a.split('_')[2] - +b.split('_')[2]);
 
   if (expFields.length) {
     fileData.experience_letter = [];
     for (const field of expFields) {
-      const files = Array.isArray(req.files[field])
-        ? req.files[field]
-        : [req.files[field]];
-
+      const files = Array.isArray(req.files[field]) ? req.files[field] : [req.files[field]];
       const uploads = await Promise.all(files.map(file => {
-        const src = getSource(file);
-        if (!src) {
-          return null;
-        }
-        return uploadToCloudinary(src, "employees");
+        const src = getFileSource(file);
+        return src ? uploadToCloudinary(src, "employees") : null;
       }));
-
       fileData.experience_letter.push(...uploads.filter(r => r !== null));
     }
   }
@@ -108,13 +67,12 @@ export const createEmployee = async (req, res) => {
       });
     }
 
-    // ✅ Parse employee data
+    // Parse employee data
     let employeeData;
     try {
-      employeeData =
-        typeof req.body.employeeData === "string"
-          ? JSON.parse(req.body.employeeData)
-          : req.body.employeeData;
+      employeeData = typeof req.body.employeeData === "string" 
+        ? JSON.parse(req.body.employeeData) 
+        : req.body.employeeData;
     } catch (parseError) {
       return res.status(400).json({
         success: false,
@@ -122,25 +80,26 @@ export const createEmployee = async (req, res) => {
       });
     }
 
-    // 🚫 Remove manually injected employee_id
+    // Remove manually injected employee_id
     delete employeeData.employee_id;
 
-    // 📤 Upload all files
+    // Upload all files
     const fileData = await processFiles(req);
 
-    // 🔗 Map file fields explicitly to employeeData
-    employeeData.profile_image = fileData.profile_image || null;
-    employeeData.aadhar_document = fileData.aadhar_document || null;
-    employeeData.pan_document = fileData.pan_document || null;
+    // Map file fields to employeeData
+    Object.assign(employeeData, {
+      profile_image: fileData.profile_image || null,
+      aadhar_document: fileData.aadhar_document || null,
+      pan_document: fileData.pan_document || null,
+      documents: {
+        resume: fileData.resume || null,
+        offer_letter: fileData.offer_letter || null,
+        joining_letter: fileData.joining_letter || null,
+        other_docs: fileData.other_docs || [],
+      }
+    });
 
-    employeeData.documents = {
-      resume: fileData.resume || null,
-      offer_letter: fileData.offer_letter || null,
-      joining_letter: fileData.joining_letter || null,
-      other_docs: fileData.other_docs || [],
-    };
-
-    // 🧾 Attach experience letters to work_experience array
+    // Attach experience letters to work_experience array
     if (employeeData.work_experience && fileData.experience_letter) {
       employeeData.work_experience = employeeData.work_experience.map((exp, i) => ({
         ...exp,
@@ -148,7 +107,7 @@ export const createEmployee = async (req, res) => {
       }));
     }
 
-    // 💾 Save employee
+    // Save employee
     const employee = new Employee(employeeData);
     const savedEmployee = await employee.save();
     
@@ -163,7 +122,6 @@ export const createEmployee = async (req, res) => {
     });
 
   } catch (error) {
-
     // Validation error
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map((val) => val.message);
@@ -287,62 +245,24 @@ export const updateEmployee = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
-    // === File Handling ===
-    const fileUpdateHandlers = {
-      profile_image: async () => {
-        if (fileData.profile_image) {
-          if (employee.profile_image?.public_id) {
-            try {
-              await deleteFromCloudinary(employee.profile_image.public_id);
-            } catch (err) {
-            }
-          }
-          return fileData.profile_image;
-        }
-        return employee.profile_image;
-      },
-      aadhar_document: async () => {
-        if (fileData.aadhar_document) {
-          if (employee.aadhar_document?.public_id) {
-            try {
-              await deleteFromCloudinary(employee.aadhar_document.public_id);
-            } catch (err) {
-            }
-          }
-          return fileData.aadhar_document;
-        }
-        return employee.aadhar_document;
-      },
-      pan_document: async () => {
-        if (fileData.pan_document) {
-          if (employee.pan_document?.public_id) {
-            try {
-              await deleteFromCloudinary(employee.pan_document.public_id);
-            } catch (err) {
-            }
-          }
-          return fileData.pan_document;
-        }
-        return employee.pan_document;
+    // File Handling
+    const fileFields = ['profile_image', 'aadhar_document', 'pan_document'];
+    for (const field of fileFields) {
+      if (fileData[field]) {
+        await safeDeleteFromCloudinary(employee[field]?.public_id);
+        employeeData[field] = fileData[field];
+      } else {
+        employeeData[field] = employee[field];
       }
-    };
-
-    for (const [field, handler] of Object.entries(fileUpdateHandlers)) {
-      employeeData[field] = await handler();
     }
 
-    // === Document Handling ===
+    // Document Handling
     employeeData.documents = employeeData.documents || {};
     const docFields = ["resume", "offer_letter", "joining_letter"];
 
     for (const field of docFields) {
       if (fileData[field]) {
-        if (employee.documents?.[field]?.public_id) {
-          try {
-            await deleteFromCloudinary(employee.documents[field].public_id);
-          } catch (err) {
-          }
-        }
+        await safeDeleteFromCloudinary(employee.documents?.[field]?.public_id);
         employeeData.documents[field] = fileData[field];
       } else {
         employeeData.documents[field] = employee.documents?.[field] || null;
@@ -354,7 +274,7 @@ export const updateEmployee = async (req, res) => {
       ...(fileData.other_docs || [])
     ];
 
-    // === Experience Letter Fix ===
+    // Experience Letter Fix
     const existingMap = new Map();
     employee.work_experience.forEach((exp) => {
       if (exp._id) existingMap.set(exp._id.toString(), exp);
@@ -371,12 +291,7 @@ export const updateEmployee = async (req, res) => {
             : fileData.experience_letter;
 
           if (uploadedLetter) {
-            if (existing?.experience_letter?.public_id) {
-              try {
-                await deleteFromCloudinary(existing.experience_letter.public_id);
-              } catch (err) {
-              }
-            }
+            await safeDeleteFromCloudinary(existing?.experience_letter?.public_id);
             return { ...exp, experience_letter: uploadedLetter };
           }
 
@@ -745,29 +660,15 @@ export const downloadContract = async (req, res) => {
     }
 
     // Use edited content if available, otherwise generate default
-    let html;
-    if (employee.contract_agreement?.editedContent) {
-      html = employee.contract_agreement.editedContent;
-    } else {
-      html = renderContractHTML(employee);
-    }
+    const html = employee.contract_agreement?.editedContent || renderContractHTML(employee);
 
     const options = {
       format: "A4",
-      border: {
-        top: "2mm",
-        right: "2mm",
-        bottom: "2mm",
-        left: "2mm"
-      },
+      border: { top: "2mm", right: "2mm", bottom: "2mm", left: "2mm" },
       zoomFactor: 0.75, 
       paginationOffset: 1,
-      header: {
-        height: "0mm"
-      },
-      footer: {
-        height: "0mm"
-      }
+      header: { height: "0mm" },
+      footer: { height: "0mm" }
     };
 
     pdf.create(html, options).toBuffer((err, buffer) => {
@@ -793,86 +694,3 @@ export const downloadContract = async (req, res) => {
     });
   }
 };
-
-// controller/employeeController.js
-// export const acceptPolicy = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const { signature } = req.body;
-
-//     const employee = await Employee.findById(id);
-//     if (!employee) return res.status(404).json({ message: "Employee not found" });
-
-//     if (employee.policy_acceptance?.accepted) {
-//       return res.status(400).json({ message: "Policy already accepted" });
-//     }
-
-//     employee.policy_acceptance = {
-//       accepted: true,
-//       accepted_at: new Date(),
-//       signature,
-//     };
-
-//     await employee.save();
-//     res.status(200).json({ message: "Policy accepted successfully" });
-//   } catch (error) {
-//     res.status(500).json({ message: "Error accepting policy", error });
-//   }
-// };
-
-// export const getPolicyStatus = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     const employee = await Employee.findById(id).select('policy_acceptance');
-//     if (!employee) return res.status(404).json({ message: "Employee not found" });
-
-//     res.status(200).json(employee.policy_acceptance);
-//   } catch (error) {
-//     res.status(500).json({ message: "Error fetching policy status", error });
-//   }
-// };
-
-// export const acceptTerms = async (req, res) => {
-//   try {
-//     const { signature } = req.body;
-//     const { id } = req.params;
-
-//     if (!signature) {
-//       return res.status(400).json({ message: "Signature is required." });
-//     }
-
-//     const employee = await Employee.findById(id);
-//     if (!employee) {
-//       return res.status(404).json({ message: "Employee not found" });
-//     }
-
-//     employee.terms_and_conditions = {
-//       accepted: true,
-//       accepted_at: new Date(),
-//       signature,
-//     };
-
-//     await employee.save();
-
-//     res.status(200).json({ message: "Terms and Conditions accepted." });
-//   } catch (error) {
-//     res.status(500).json({ message: "Internal Server Error" });
-//   }
-// };
-
-// export const getTermsStatus = async (req, res) => {
-//   try {
-//     const employee = await Employee.findById(req.params.id).select("terms_and_conditions");
-//     if (!employee) {
-//       return res.status(404).json({ message: "Employee not found" });
-//     }
-
-//     res.status(200).json({
-//       accepted: employee.terms_and_conditions?.accepted || false,
-//       accepted_at: employee.terms_and_conditions?.accepted_at || null,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: "Internal Server Error" });
-//   }
-// };

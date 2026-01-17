@@ -3,9 +3,8 @@ import Employee from "../models/Employee.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const generateToken = (userId, role) => {
-  return jwt.sign({ userId, role }, process.env.JWT_SECRET, { expiresIn: '24h' });
-};
+const generateToken = (userId, role) => 
+  jwt.sign({ userId, role }, process.env.JWT_SECRET, { expiresIn: '365d' });
 
 const createUserResponse = (user, role, token = null) => {
   const response = {
@@ -13,12 +12,9 @@ const createUserResponse = (user, role, token = null) => {
     name: user.name,
     email: user.email,
     isAdmin: role === 'admin',
-    role
+    role,
+    ...(role === 'employee' && { employee_id: user.employee_id })
   };
-  
-  if (role === 'employee') {
-    response.employee_id = user.employee_id;
-  }
   
   return token ? { success: true, token, user: response } : response;
 };
@@ -51,9 +47,7 @@ const createUserAccount = async (userData, isAdmin = false) => {
   const { name, email, password } = userData;
   
   const userExists = await User.findOne({ email });
-  if (userExists) {
-    throw new Error("User already exists");
-  }
+  if (userExists) throw new Error("User already exists");
 
   return await User.create({ name, email, password, isAdmin });
 };

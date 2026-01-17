@@ -11,15 +11,15 @@ cloudinary.v2.config({
 export const uploadToCloudinary = async (filePath, folder = "employees") => {
   try {
     const ext = path.extname(filePath).toLowerCase();
-
     const isRaw = [".pdf", ".doc", ".docx"].includes(ext);
+    
     const result = await cloudinary.v2.uploader.upload(filePath, {
       folder,
       resource_type: isRaw ? "raw" : "auto", 
     });
-    // remove temp file after upload
-    fs.unlink(filePath, err => {
-    });
+    
+    // Remove temp file after upload
+    fs.unlink(filePath, () => {});
     return result;
   } catch (err) {
     throw err;

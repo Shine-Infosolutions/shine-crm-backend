@@ -5,7 +5,7 @@ import Employee from "../models/Employee.js";
 export const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.header('Authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : authHeader;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     
     if (!token) {
       return res.status(401).json({ success: false, message: 'Access denied. No token provided.' });
@@ -13,29 +13,23 @@ export const authenticate = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    if (decoded.role === 'admin') {
-      const user = await User.findById(decoded.userId);
-      if (!user) {
-        return res.status(401).json({ success: false, message: 'Invalid token.' });
-      }
-      req.user = { ...user.toObject(), role: 'admin' };
-    } else {
-      const employee = await Employee.findById(decoded.userId);
-      if (!employee) {
-        return res.status(401).json({ success: false, message: 'Invalid token.' });
-      }
-      req.user = { ...employee.toObject(), role: 'employee' };
-    }
+    const userModel = decoded.role === 'admin' ? User : Employee;
+    const user = await userModel.findById(decoded.userId);
     
-    next();
-  } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ success: false, message: 'Token expired.' });
-    }
-    if (error.name === 'JsonWebTokenError') {
+    if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid token.' });
     }
-    res.status(401).json({ success: false, message: 'Authentication failed.' });
+    
+    req.user = { ...user.toObject(), role: decoded.role, _id: decoded.userId };
+    next();
+  } catch (error) {
+    const errorMessages = {
+      'TokenExpiredError': 'Token expired.',
+      'JsonWebTokenError': 'Invalid token.'
+    };
+    
+    const message = errorMessages[error.name] || 'Authentication failed.';
+    res.status(401).json({ success: false, message });
   }
 };
 

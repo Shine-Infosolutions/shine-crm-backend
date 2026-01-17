@@ -1,4 +1,3 @@
-// server/routes/authRoutes.js
 import express from "express";
 import { login, register, createAdmin, createUser } from "../controllers/AuthController.js";
 

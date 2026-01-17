@@ -3,7 +3,6 @@ import connectDB from "./config/db.js";
 import "dotenv/config";
 import cors from "cors";
 import helmet from "helmet";
-// import rateLimit from "express-rate-limit";
 
 // Route imports
 import adminRoutes from "./routes/AdminRoutes.js";
@@ -24,18 +23,20 @@ import backupRoutes from "./routes/BackupRoutes.js";
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Security middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  contentSecurityPolicy: false,
-  frameguard: false, // Disable X-Frame-Options to allow iframe embedding
-}));
-
 // Database connection
 await connectDB();
 
-// CORS configuration (must be before rate limiting)
-const corsOptions = {
+// Middleware configuration
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false,
+  frameguard: false
+}));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+app.use(cors({
   origin: [
     "http://localhost:5173",
     "http://localhost:5000", 
@@ -45,25 +46,7 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-// Middleware configuration
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(cors(corsOptions));
-
-// Rate limiting configuration (commented out)
-// const createRateLimit = (max, message) => rateLimit({
-//   windowMs: 15 * 60 * 1000,
-//   max,
-//   message: { success: false, message }
-// });
-
-// const generalLimiter = createRateLimit(1000, 'Too many requests, please try again later.');
-// const authLimiter = createRateLimit(10, 'Too many login attempts, please try again later.');
-
-// app.use('/api/', generalLimiter);
-// app.use('/api/auth/login', authLimiter);
+}));
 
 // Routes
 app.use("/api/admin", adminRoutes);
