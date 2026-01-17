@@ -348,6 +348,9 @@ export const updateEmployee = async (req, res) => {
       );
     }
 
+    // Remove password from employeeData to avoid validation issues
+    delete employeeData.password;
+
     const updatedEmployee = await Employee.findByIdAndUpdate(
       req.params.id,
       { $set: employeeData },
