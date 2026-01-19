@@ -57,19 +57,50 @@ export const createProject = async (req, res) => {
 // Update a project by ID
 export const updateProject = async (req, res) => {
   try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // Store current progress if changing from Active to On Hold/Cancelled
+    if (project.status === 'Active' && ['On Hold', 'Cancelled'].includes(req.body.status)) {
+      req.body.progress = project.calculateProgress();
+    }
+
     const updatedProject = await Project.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
     );
 
-    if (!updatedProject) {
-      return res.status(404).json({ message: "Project not found" });
-    }
-
     res.status(200).json({ success: true, updatedProject });
   } catch (error) {
     res.status(500).json({ message: "Error updating project", error: error.message });
+  }
+};
+
+// Update progress for all active projects
+export const updateAllProgress = async (req, res) => {
+  try {
+    const activeProjects = await Project.find({ 
+      projectType: 'ONE_TIME', 
+      status: 'Active' 
+    });
+    
+    for (const project of activeProjects) {
+      const newProgress = project.calculateProgress();
+      await Project.findByIdAndUpdate(project._id, {
+        progress: newProgress,
+        lastProgressUpdate: new Date()
+      });
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Updated progress for ${activeProjects.length} projects` 
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
