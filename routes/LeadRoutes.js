@@ -2,6 +2,7 @@
 import express from "express";
 import {
   getLeads,
+  getLeadsCount,
   getLeadById,
   createLead,
   updateLead,
@@ -13,6 +14,7 @@ import { authenticate, adminAuth } from "../middleware/adminAuth.js";
 const router = express.Router();
 
 router.get("/", authenticate, getLeads);
+router.get("/count", authenticate, getLeadsCount);
 router.get("/export/csv", adminAuth, exportLeadsToCSV);
 router.get("/:id", authenticate, getLeadById);
 router.post("/", authenticate, createLead);

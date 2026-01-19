@@ -2,6 +2,7 @@ import express from "express";
 import {
   createEmployee,
   getEmployees,
+  getEmployeesCount,
   getEmployeeById,
   updateEmployee,
   deleteEmployee,
@@ -81,6 +82,7 @@ const uploadFields = upload.fields([
 router.post("/", adminAuth, uploadFields, createEmployee);
 router.put("/:id", adminAuth, uploadFields, updateEmployee);
 router.get("/", authenticate, getEmployees); // Allow employees to see employee list
+router.get("/count", authenticate, getEmployeesCount);
 router.get("/:id", authenticate, getEmployeeById);
 router.delete("/:id", adminAuth, deleteEmployee);
 router.delete("/:employeeId/documents/:docType/:public_id", adminAuth, deleteDocument);

@@ -186,6 +186,16 @@ export const getEmployees = async (req, res) => {
     });
   }
 };
+
+// Get Employee Count
+export const getEmployeesCount = async (req, res) => {
+  try {
+    const count = await Employee.countDocuments();
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
  
 export const getEmployeeById = async (req, res) => {
   try {

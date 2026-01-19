@@ -1,5 +1,21 @@
 import Lead from "../models/Lead.js";
 
+// Get leads count only
+export const getLeadsCount = async (req, res) => {
+  try {
+    const count = await Lead.countDocuments();
+    res.status(200).json({
+      success: true,
+      count
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 // Get all leads
 export const getLeads = async (req, res) => {
   try {
