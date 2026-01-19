@@ -20,6 +20,7 @@ import employeeTimesheetRoutes from "./routes/EmployeeTimesheetRoutes.js";
 import unitRoutes from "./routes/UnitRoutes.js";
 import settingsRoutes from "./routes/SettingsRoutes.js";
 import backupRoutes from "./routes/BackupRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -53,6 +54,7 @@ app.use(cors({
 // Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/employees", employeeRoutes);
