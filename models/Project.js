@@ -111,7 +111,6 @@ const projectSchema = new mongoose.Schema(
         type: String,
         enum: ["Active", "Paused", "Stopped"],
         default: "Active",
-        index: true,
       },
       lastInvoiceId: String,
       missedBillingCount: { type: Number, default: 0 },
