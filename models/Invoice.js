@@ -9,7 +9,7 @@ const invoiceSchema = new mongoose.Schema(
     customerGST: {
       type: String,
       required: function() {
-        return this.isGSTInvoice !== false;
+        return this.isGSTInvoice === true;
       },
     },
     invoiceDate: {
@@ -99,24 +99,8 @@ const invoiceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Auto-generate invoice number using atomic counter
-invoiceSchema.pre('save', async function(next) {
-  if (this.isNew && !this.invoiceNumber) {
-    const Counter = mongoose.model('Counter', new mongoose.Schema({
-      _id: String,
-      seq: { type: Number, default: 0 }
-    }));
-    
-    const counter = await Counter.findByIdAndUpdate(
-      'invoice_number',
-      { $inc: { seq: 1 } },
-      { new: true, upsert: true }
-    );
-    
-    this.invoiceNumber = `INV-${counter.seq}`;
-  }
-  next();
-});
+// Index on createdAt (descending) for efficient latest invoice lookup
+invoiceSchema.index({ createdAt: -1 });
 
 const Invoice = mongoose.model('Invoice', invoiceSchema);
 export default Invoice;

@@ -1,21 +1,49 @@
 import Invoice from "../models/Invoice.js";
+import { generateInvoiceNumber } from "../utils/generateInvoiceNumber.js";
+
+// Utility function for GST handling
+const handleCustomerGST = (data) => {
+  if (data.isGSTInvoice === false) {
+    if (!data.customerGST || data.customerGST.trim() === '') {
+      data.customerGST = 'N/A';
+    }
+  }
+};
+
+// Allowed fields for invoice creation/update
+const allowedFields = [
+  'isGSTInvoice', 'customerGST', 'invoiceDate', 'dueDate', 'customerName',
+  'customerAddress', 'customerPhone', 'customerEmail', 'dispatchThrough',
+  'customerAadhar', 'productDetails', 'amountDetails', 'notes'
+];
+
+// Sanitize input data
+const sanitizeInvoiceData = (body) => {
+  const sanitized = {};
+  allowedFields.forEach(field => {
+    if (body[field] !== undefined) {
+      sanitized[field] = body[field];
+    }
+  });
+  return sanitized;
+};
 
 // Create a new invoice
 export const createInvoice = async (req, res) => {
   try {
-    const invoiceData = { ...req.body };
+    const invoiceData = sanitizeInvoiceData(req.body);
+    
+    // Generate invoice number if not provided
+    if (!invoiceData.invoiceNumber) {
+      invoiceData.invoiceNumber = await generateInvoiceNumber();
+    }
     
     // Handle backward compatibility - if isGSTInvoice is not provided, default to true
     if (invoiceData.isGSTInvoice === undefined) {
       invoiceData.isGSTInvoice = true;
     }
     
-    // For non-GST invoices, allow customerGST to be "N/A" or empty
-    if (invoiceData.isGSTInvoice === false) {
-      if (!invoiceData.customerGST || invoiceData.customerGST.trim() === '') {
-        invoiceData.customerGST = 'N/A';
-      }
-    }
+    handleCustomerGST(invoiceData);
     
     const invoice = new Invoice(invoiceData);
     await invoice.save();
@@ -70,19 +98,19 @@ export const getInvoiceById = async (req, res) => {
 // Update invoice
 export const updateInvoice = async (req, res) => {
   try {
-    const updateData = { ...req.body };
+    const updateData = sanitizeInvoiceData(req.body);
     
-    // For non-GST invoices, allow customerGST to be "N/A" or empty
-    if (updateData.isGSTInvoice === false) {
-      if (!updateData.customerGST || updateData.customerGST.trim() === '') {
-        updateData.customerGST = 'N/A';
-      }
-    }
+    handleCustomerGST(updateData);
     
     const invoice = await Invoice.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true,
     });
+    
+    if (!invoice) {
+      return res.status(404).json({ success: false, error: "Invoice not found" });
+    }
+    
     res.json({ success: true, data: invoice });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
@@ -92,7 +120,12 @@ export const updateInvoice = async (req, res) => {
 // Delete invoice
 export const deleteInvoice = async (req, res) => {
   try {
-    await Invoice.findByIdAndDelete(req.params.id);
+    const invoice = await Invoice.findByIdAndDelete(req.params.id);
+    
+    if (!invoice) {
+      return res.status(404).json({ success: false, error: "Invoice not found" });
+    }
+    
     res.json({ success: true, message: "Invoice deleted" });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -120,18 +153,10 @@ export const updateInvoiceNotes = async (req, res) => {
 // Get next invoice number
 export const getNextInvoiceNumber = async (req, res) => {
   try {
-    const Counter = (await import('mongoose')).default.model('Counter', new (await import('mongoose')).default.Schema({
-      _id: String,
-      seq: { type: Number, default: 0 }
-    }));
-    
-    const counter = await Counter.findById('invoice_number');
-    const nextNumber = counter ? counter.seq + 1 : 1;
-    const nextInvoiceNumber = `INV-${nextNumber}`;
-    
-    res.json({ nextInvoiceNumber });
+    const nextInvoiceNumber = await generateInvoiceNumber();
+    res.json({ success: true, nextInvoiceNumber });
   } catch (err) {
-    res.status(500).json({ error: "Could not generate next invoice number" });
+    res.status(500).json({ success: false, error: "Could not generate next invoice number" });
   }
 };
   
