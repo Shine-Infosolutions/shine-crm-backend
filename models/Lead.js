@@ -37,6 +37,16 @@ const leadSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    meetingDates: [{
+      dateTime: {
+        type: Date,
+        required: true,
+      },
+      addedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    }],
     meetingDate: {
       type: Date,
       required: false,
@@ -55,6 +65,16 @@ const leadSchema = new mongoose.Schema(
       type: Date,
       required: false,
     },
+    clientCallDates: [{
+      dateTime: {
+        type: Date,
+        required: true,
+      },
+      addedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    }],
     clientRequestedCallDate: {
       type: Date,
       required: false,
