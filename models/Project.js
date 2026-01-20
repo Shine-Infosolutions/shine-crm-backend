@@ -94,10 +94,10 @@ const projectSchema = new mongoose.Schema(
 
     // Recurring project fields
     recurringProject: {
-      serviceType: {
+      serviceType: [{
         type: String,
-        enum: ["SMM", "SEO", "Maintenance", "Ads", "Content", "Other"],
-      },
+        enum: ["Social Media", "GNB SEO", "Website Maintenance", "Other"],
+      }],
       billingCycle: {
         type: String,
         enum: ["Monthly", "Quarterly", "Yearly"],
@@ -105,7 +105,7 @@ const projectSchema = new mongoose.Schema(
       recurringAmount: { type: Number, required: true },
       contractStartDate: Date,
       contractEndDate: Date,
-      autoRenew: { type: Boolean, default: false },
+
       nextBillingDate: Date,
       billingStatus: {
         type: String,
@@ -117,6 +117,19 @@ const projectSchema = new mongoose.Schema(
       autoInvoice: { type: Boolean, default: false },
       slaDeliverables: String,
       billingHistory: [billingHistorySchema],
+      
+      // Social Media Configuration
+      socialMediaConfig: {
+        platforms: [{
+          type: String,
+          enum: ["Instagram", "Facebook", "LinkedIn", "Twitter/X"]
+        }],
+        deliverables: {
+          posts: { type: Number, default: 0 },
+          reels: { type: Number, default: 0 },
+          stories: { type: Number, default: 0 }
+        }
+      }
     },
   },
   { timestamps: true }
@@ -181,6 +194,23 @@ projectSchema.pre('save', function(next) {
     if (!this.recurringProject?.recurringAmount) {
       return next(new Error('Recurring amount is required for recurring projects'));
     }
+    
+    // Social Media validation
+    const serviceTypes = this.recurringProject.serviceType || [];
+    if (serviceTypes.includes('Social Media')) {
+      const socialConfig = this.recurringProject.socialMediaConfig;
+      
+      if (!socialConfig || !socialConfig.platforms || socialConfig.platforms.length === 0) {
+        return next(new Error('At least one social media platform is required'));
+      }
+      
+      const deliverables = socialConfig.deliverables || {};
+      const totalDeliverables = (deliverables.posts || 0) + (deliverables.reels || 0) + (deliverables.stories || 0);
+      
+      if (totalDeliverables === 0) {
+        return next(new Error('At least one deliverable must be greater than 0'));
+      }
+    }
   }
   next();
 });
@@ -188,6 +218,7 @@ projectSchema.pre('save', function(next) {
 // Indexes for reporting
 projectSchema.index({ projectType: 1, status: 1 });
 projectSchema.index({ 'recurringProject.billingStatus': 1 });
+projectSchema.index({ 'recurringProject.serviceType': 1 });
 projectSchema.index({ assignedManager: 1 });
 projectSchema.index({ clientId: 1 });
 
