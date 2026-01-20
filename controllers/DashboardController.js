@@ -18,10 +18,18 @@ export const getDashboardCounts = async (req, res) => {
             _id: null,
             totalProjects: { $sum: 1 },
             activeProjects: {
-              $sum: { $cond: [{ $eq: ["$status", "Active"] }, 1, 0] }
+              $sum: { 
+                $cond: [{ 
+                  $in: ["$status", ["Active", "Start", "Progress", "Pending"]] 
+                }, 1, 0] 
+              }
             },
             completedProjects: {
-              $sum: { $cond: [{ $eq: ["$status", "Completed"] }, 1, 0] }
+              $sum: { 
+                $cond: [{ 
+                  $in: ["$status", ["Completed", "Close"]] 
+                }, 1, 0] 
+              }
             },
             totalRevenue: {
               $sum: {
@@ -77,7 +85,7 @@ export const getRecentLeads = async (req, res) => {
 export const getActiveProjects = async (req, res) => {
   try {
     const projects = await Project.find(
-      { status: 'Active' },
+      { status: { $in: ['Active', 'Start', 'Progress', 'Pending'] } },
       'projectName clientName status'
     )
       .sort({ createdAt: -1 })
@@ -93,7 +101,7 @@ export const getActiveProjects = async (req, res) => {
 export const getCompletedProjects = async (req, res) => {
   try {
     const projects = await Project.find(
-      { status: 'Completed' },
+      { status: { $in: ['Completed', 'Close'] } },
       'projectName clientName status'
     )
       .sort({ updatedAt: -1 })
