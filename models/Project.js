@@ -28,6 +28,9 @@ const projectSchema = new mongoose.Schema(
       warrantyPeriod: String,
       autoInvoice: { type: Boolean, default: false },
       lastInvoiceId: String,
+      domainName: String,
+      domainProvider: String,
+      domainExpiryDate: Date,
       paymentMilestones: [{
         title: { type: String, required: true },
         amount: { type: Number, required: true },
