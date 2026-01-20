@@ -52,7 +52,7 @@ const projectSchema = new mongoose.Schema(
     
     status: {
       type: String,
-      enum: ["Active", "On Hold", "Completed", "Cancelled"],
+      enum: ["Active", "On Hold", "Completed", "Cancelled", "Pending", "Start", "Progress", "Hold", "Close"],
       default: "Active",
       index: true,
     },
