@@ -26,6 +26,8 @@ const projectSchema = new mongoose.Schema(
       sourceCodeLink: String,
       deploymentDetails: String,
       warrantyPeriod: String,
+      autoInvoice: { type: Boolean, default: false },
+      lastInvoiceId: String,
       paymentMilestones: [{
         title: { type: String, required: true },
         amount: { type: Number, required: true },
