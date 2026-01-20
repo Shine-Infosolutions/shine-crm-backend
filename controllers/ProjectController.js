@@ -43,11 +43,16 @@ export const getProjectById = async (req, res) => {
 // Create a new project
 export const createProject = async (req, res) => {
   try {
+    console.log('Received project data:', JSON.stringify(req.body, null, 2));
+    
     // Additional validation for social media projects
     if (req.body.projectType === 'RECURRING' && req.body.recurringProject) {
-      const serviceType = req.body.recurringProject.serviceType;
+      const serviceTypes = req.body.recurringProject.serviceType || [];
+      const hasSocialMedia = Array.isArray(serviceTypes) 
+        ? serviceTypes.includes('Social Media')
+        : serviceTypes === 'Social Media';
       
-      if (serviceType === 'Social Media' || serviceType === 'Social Media and SEO') {
+      if (hasSocialMedia) {
         const socialConfig = req.body.recurringProject.socialMediaConfig;
         
         if (!socialConfig || !socialConfig.platforms || socialConfig.platforms.length === 0) {
@@ -64,21 +69,19 @@ export const createProject = async (req, res) => {
             message: "At least one deliverable must be greater than 0 for social media services" 
           });
         }
-      } else {
-        // Remove social media config for non-social media services
-        if (req.body.recurringProject.socialMediaConfig) {
-          delete req.body.recurringProject.socialMediaConfig;
-        }
       }
     }
     
     const project = await Project.create(req.body);
+    console.log('Project created successfully:', project._id);
+    
     res.status(201).json({
       success: true,
       project,
       message: "Project created successfully",
     });
   } catch (error) {
+    console.error('Project creation error:', error);
     res.status(400).json({ message: error.message });
   }
 };
@@ -91,11 +94,16 @@ export const updateProject = async (req, res) => {
       return res.status(404).json({ message: "Project not found" });
     }
 
+    console.log('Updating project with data:', JSON.stringify(req.body, null, 2));
+
     // Additional validation for social media projects
     if (req.body.projectType === 'RECURRING' && req.body.recurringProject) {
-      const serviceType = req.body.recurringProject.serviceType;
+      const serviceTypes = req.body.recurringProject.serviceType || [];
+      const hasSocialMedia = Array.isArray(serviceTypes) 
+        ? serviceTypes.includes('Social Media')
+        : serviceTypes === 'Social Media';
       
-      if (serviceType === 'Social Media' || serviceType === 'Social Media and SEO') {
+      if (hasSocialMedia) {
         const socialConfig = req.body.recurringProject.socialMediaConfig;
         
         if (!socialConfig || !socialConfig.platforms || socialConfig.platforms.length === 0) {
@@ -112,17 +120,12 @@ export const updateProject = async (req, res) => {
             message: "At least one deliverable must be greater than 0 for social media services" 
           });
         }
-      } else {
-        // Remove social media config for non-social media services
-        if (req.body.recurringProject.socialMediaConfig) {
-          delete req.body.recurringProject.socialMediaConfig;
-        }
       }
     }
 
-    // Store current progress if changing from Active to On Hold/Cancelled
+    // Store current status if changing from Active to On Hold/Cancelled
     if (project.status === 'Active' && ['On Hold', 'Cancelled'].includes(req.body.status)) {
-      req.body.progress = project.calculateProgress();
+      // Status change logged
     }
 
     const updatedProject = await Project.findByIdAndUpdate(
@@ -131,8 +134,10 @@ export const updateProject = async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    console.log('Project updated successfully:', updatedProject._id);
     res.status(200).json({ success: true, updatedProject });
   } catch (error) {
+    console.error('Project update error:', error);
     res.status(500).json({ message: "Error updating project", error: error.message });
   }
 };
@@ -140,24 +145,12 @@ export const updateProject = async (req, res) => {
 // Update progress for all active projects
 export const updateAllProgress = async (req, res) => {
   try {
-    const activeProjects = await Project.find({ 
-      projectType: 'ONE_TIME', 
-      status: 'Active' 
-    });
-    
-    for (const project of activeProjects) {
-      const newProgress = project.calculateProgress();
-      await Project.findByIdAndUpdate(project._id, {
-        progress: newProgress,
-        lastProgressUpdate: new Date()
-      });
-    }
-    
     res.json({ 
       success: true, 
-      message: `Updated progress for ${activeProjects.length} projects` 
+      message: "Progress update feature removed" 
     });
   } catch (error) {
+    console.error('Update progress error:', error);
     res.status(500).json({ message: error.message });
   }
 };

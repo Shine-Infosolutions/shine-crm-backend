@@ -1,86 +1,23 @@
 // server/models/Project.js
 import mongoose from "mongoose";
 
-const paymentMilestoneSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  amount: { type: Number, required: true },
-  dueDate: { type: Date, required: true },
-  status: { type: String, enum: ['Pending', 'Paid', 'Overdue'], default: 'Pending' }
-});
-
-const billingHistorySchema = new mongoose.Schema({
-  invoiceId: { type: String, required: true },
-  amount: { type: Number, required: true },
-  billedOn: { type: Date, required: true },
-  status: { type: String, enum: ['Pending', 'Paid', 'Failed'], default: 'Pending' }
-});
-
 const projectSchema = new mongoose.Schema(
   {
-    // Common fields for all projects
-    projectName: {
-      type: String,
-      required: true,
-    },
-    projectType: {
-      type: String,
-      enum: ["ONE_TIME", "RECURRING"],
-      required: true,
-      index: true,
-    },
-    
-    // Client reference (new approach)
-    clientId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Lead',
-    },
-    
-    // Backward compatibility (deprecated)
+    projectName: { type: String, required: true, index: true },
+    projectType: { type: String, enum: ["ONE_TIME", "RECURRING"], required: true, index: true },
+    clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Lead', index: true },
     clientName: String,
     clientContact: String,
-    
-    // Ownership & accountability
-    assignedManager: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Employee',
-      required: true,
-    },
-    assignedTeam: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Employee',
-    }],
-    
-    status: {
-      type: String,
-      enum: ["Active", "On Hold", "Completed", "Cancelled", "Pending", "Start", "Progress", "Hold", "Close"],
-      default: "Active",
-      index: true,
-    },
-    progress: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 100,
-    },
-    lastProgressUpdate: {
-      type: Date,
-      default: Date.now,
-    },
-    priority: {
-      type: String,
-      enum: ["Low", "Medium", "High", "Critical"],
-      default: "Medium",
-    },
+    assignedManager: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', required: true, index: true },
+    assignedTeam: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Employee' }],
+    status: { type: String, enum: ["Active", "On Hold", "Completed", "Cancelled", "Pending", "Start", "Progress", "Hold", "Close"], default: "Active", index: true },
+    priority: { type: String, enum: ["Low", "Medium", "High", "Critical"], default: "Medium" },
     notes: String,
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
-    // One-time project fields
     oneTimeProject: {
       scope: String,
-      totalAmount: { type: Number, required: true },
+      totalAmount: { type: Number, required: function() { return this.projectType === 'ONE_TIME'; } },
       advanceAmount: { type: Number, default: 0 },
       paidAmount: { type: Number, default: 0 },
       startDate: Date,
@@ -89,138 +26,118 @@ const projectSchema = new mongoose.Schema(
       sourceCodeLink: String,
       deploymentDetails: String,
       warrantyPeriod: String,
-      paymentMilestones: [paymentMilestoneSchema],
+      paymentMilestones: [{
+        title: { type: String, required: true },
+        amount: { type: Number, required: true },
+        dueDate: { type: Date, required: true },
+        status: { type: String, enum: ['Pending', 'Paid', 'Overdue'], default: 'Pending' }
+      }]
     },
 
-    // Recurring project fields
     recurringProject: {
-      serviceType: [{
-        type: String,
-        enum: ["Social Media", "GNB SEO", "Website Maintenance", "Other"],
-      }],
-      billingCycle: {
-        type: String,
-        enum: ["Monthly", "Quarterly", "Yearly"],
-      },
-      recurringAmount: { type: Number, required: true },
+      serviceType: [{ type: String, enum: ["Social Media", "GNB SEO", "Website Maintenance", "Other"] }],
+      billingCycle: { type: String, enum: ["Monthly", "Quarterly", "Yearly"] },
+      recurringAmount: { type: Number, required: function() { return this.projectType === 'RECURRING'; } },
       contractStartDate: Date,
       contractEndDate: Date,
-
-      nextBillingDate: Date,
-      billingStatus: {
-        type: String,
-        enum: ["Active", "Paused", "Stopped"],
-        default: "Active",
-      },
+      nextBillingDate: { type: Date, index: true },
+      billingStatus: { type: String, enum: ["Active", "Paused", "Stopped"], default: "Active", index: true },
       lastInvoiceId: String,
       missedBillingCount: { type: Number, default: 0 },
       autoInvoice: { type: Boolean, default: false },
       slaDeliverables: String,
-      billingHistory: [billingHistorySchema],
-      
-      // Social Media Configuration
+      billingHistory: [{
+        invoiceId: { type: String, required: true },
+        amount: { type: Number, required: true },
+        billedOn: { type: Date, required: true },
+        status: { type: String, enum: ['Pending', 'Paid', 'Failed'], default: 'Pending' }
+      }],
       socialMediaConfig: {
-        platforms: [{
-          type: String,
-          enum: ["Instagram", "Facebook", "LinkedIn", "Twitter/X"]
-        }],
+        platforms: [{ type: String, enum: ["Instagram", "Facebook", "LinkedIn", "Twitter/X"] }],
         deliverables: {
-          posts: { type: Number, default: 0 },
-          reels: { type: Number, default: 0 },
-          stories: { type: Number, default: 0 }
+          posts: { type: Number, default: 0, min: 0, max: 100 },
+          reels: { type: Number, default: 0, min: 0, max: 100 },
+          stories: { type: Number, default: 0, min: 0, max: 100 }
         }
       }
-    },
+    }
   },
   { timestamps: true }
 );
 
-// Virtual for pending amount calculation
+// Optimized virtual
 projectSchema.virtual('oneTimeProject.pendingAmount').get(function() {
-  if (this.projectType === 'ONE_TIME' && this.oneTimeProject) {
-    return this.oneTimeProject.totalAmount - this.oneTimeProject.paidAmount;
-  }
-  return 0;
+  return this.projectType === 'ONE_TIME' && this.oneTimeProject 
+    ? this.oneTimeProject.totalAmount - this.oneTimeProject.paidAmount : 0;
 });
 
-// Progress calculation method
-projectSchema.methods.calculateProgress = function() {
-  if (this.projectType !== 'ONE_TIME') return this.progress;
-  
-  // Status overrides
-  if (this.status === 'Completed') return 100;
-  if (this.status === 'On Hold' || this.status === 'Cancelled') return this.progress;
-  
-  const start = new Date(this.oneTimeProject?.startDate);
-  const expected = new Date(this.oneTimeProject?.expectedDeliveryDate);
-  const today = new Date();
-  
-  if (!start || !expected || isNaN(start.getTime()) || isNaN(expected.getTime())) return 0;
-  if (today < start) return 0;
-  
-  const totalDays = Math.ceil((expected - start) / (1000 * 60 * 60 * 24));
-  const daysPassed = Math.ceil((today - start) / (1000 * 60 * 60 * 24));
-  
-  if (totalDays <= 0) return 0;
-  
-  const calculatedProgress = Math.round((daysPassed / totalDays) * 100);
-  return Math.min(calculatedProgress, 99); // Cap at 99% for Active status
-};
-
-// Update progress before save
+// Optimized pre-save middleware
 projectSchema.pre('save', function(next) {
-  // Handle progress updates
-  if (this.projectType === 'ONE_TIME' && this.status === 'Active') {
-    this.progress = this.calculateProgress();
-    this.lastProgressUpdate = new Date();
-  } else if (this.status === 'Completed') {
-    this.progress = 100;
-    this.lastProgressUpdate = new Date();
-  }
+  console.log('Pre-save middleware triggered for project:', this.projectName);
+  console.log('Project type:', this.projectType);
+  console.log('Pre-save data:', JSON.stringify(this.toObject(), null, 2));
   
-  // Skip validation if this is just a progress update
-  if (this.isModified('progress') && !this.isModified('projectName')) {
-    return next();
-  }
-  
-  // Validation for new/edited projects
   if (this.projectType === 'ONE_TIME') {
     this.recurringProject = undefined;
-    if (!this.oneTimeProject?.totalAmount) {
-      return next(new Error('Total amount is required for one-time projects'));
-    }
   } else if (this.projectType === 'RECURRING') {
     this.oneTimeProject = undefined;
-    if (!this.recurringProject?.recurringAmount) {
-      return next(new Error('Recurring amount is required for recurring projects'));
+    
+    // Ensure socialMediaConfig exists if not provided
+    if (!this.recurringProject.socialMediaConfig) {
+      this.recurringProject.socialMediaConfig = {
+        platforms: [],
+        deliverables: { posts: 0, reels: 0, stories: 0 }
+      };
     }
     
-    // Social Media validation
+    console.log('socialMediaConfig after setup:', this.recurringProject.socialMediaConfig);
+    
     const serviceTypes = this.recurringProject.serviceType || [];
-    if (serviceTypes.includes('Social Media')) {
-      const socialConfig = this.recurringProject.socialMediaConfig;
+    const hasSocialMedia = Array.isArray(serviceTypes) 
+      ? serviceTypes.includes('Social Media')
+      : serviceTypes === 'Social Media';
       
-      if (!socialConfig || !socialConfig.platforms || socialConfig.platforms.length === 0) {
+    if (hasSocialMedia) {
+      const socialConfig = this.recurringProject.socialMediaConfig;
+      if (!socialConfig?.platforms?.length) {
+        console.log('Validation error: No platforms selected for Social Media service');
         return next(new Error('At least one social media platform is required'));
       }
-      
-      const deliverables = socialConfig.deliverables || {};
-      const totalDeliverables = (deliverables.posts || 0) + (deliverables.reels || 0) + (deliverables.stories || 0);
-      
+      const totalDeliverables = (socialConfig.deliverables?.posts || 0) + 
+        (socialConfig.deliverables?.reels || 0) + (socialConfig.deliverables?.stories || 0);
       if (totalDeliverables === 0) {
+        console.log('Validation error: No deliverables specified for Social Media service');
         return next(new Error('At least one deliverable must be greater than 0'));
       }
     }
   }
+  
+  console.log('Pre-save validation passed, proceeding to save');
   next();
 });
 
-// Indexes for reporting
+// Compound indexes for better query performance
 projectSchema.index({ projectType: 1, status: 1 });
-projectSchema.index({ 'recurringProject.billingStatus': 1 });
-projectSchema.index({ 'recurringProject.serviceType': 1 });
-projectSchema.index({ assignedManager: 1 });
-projectSchema.index({ clientId: 1 });
+projectSchema.index({ assignedManager: 1, status: 1 });
+projectSchema.index({ 'recurringProject.billingStatus': 1, 'recurringProject.nextBillingDate': 1 });
+projectSchema.index({ createdAt: -1 });
+
+// Add post-save middleware for debugging
+projectSchema.post('save', function(doc, next) {
+  console.log('Post-save: Project saved successfully with ID:', doc._id);
+  console.log('Saved project data:', JSON.stringify(doc.toObject(), null, 2));
+  next();
+});
+
+// Add error handling middleware
+projectSchema.post('save', function(error, doc, next) {
+  if (error) {
+    console.error('Post-save error:', error);
+    next(error);
+  } else {
+    next();
+  }
+});
 
 const Project = mongoose.model("Project", projectSchema);
 export default Project;
