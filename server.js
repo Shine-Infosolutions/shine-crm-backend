@@ -73,26 +73,6 @@ app.get("/", (req, res) => {
   res.json({ message: "Shine CRM API is running securely" });
 });
 
-app.get("/health", async (req, res) => {
-  try {
-    const mongoose = await import('mongoose');
-    const dbState = mongoose.default.connection.readyState;
-    const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
-    
-    res.json({ 
-      status: 'OK', 
-      database: states[dbState] || 'unknown',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      status: 'ERROR', 
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
 // Global error handler
 app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Something went wrong!' });

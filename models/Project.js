@@ -73,10 +73,6 @@ projectSchema.virtual('oneTimeProject.pendingAmount').get(function() {
 
 // Optimized pre-save middleware
 projectSchema.pre('save', function(next) {
-  console.log('Pre-save middleware triggered for project:', this.projectName);
-  console.log('Project type:', this.projectType);
-  console.log('Pre-save data:', JSON.stringify(this.toObject(), null, 2));
-  
   if (this.projectType === 'ONE_TIME') {
     this.recurringProject = undefined;
   } else if (this.projectType === 'RECURRING') {
@@ -90,8 +86,6 @@ projectSchema.pre('save', function(next) {
       };
     }
     
-    console.log('socialMediaConfig after setup:', this.recurringProject.socialMediaConfig);
-    
     const serviceTypes = this.recurringProject.serviceType || [];
     const hasSocialMedia = Array.isArray(serviceTypes) 
       ? serviceTypes.includes('Social Media')
@@ -100,19 +94,16 @@ projectSchema.pre('save', function(next) {
     if (hasSocialMedia) {
       const socialConfig = this.recurringProject.socialMediaConfig;
       if (!socialConfig?.platforms?.length) {
-        console.log('Validation error: No platforms selected for Social Media service');
         return next(new Error('At least one social media platform is required'));
       }
       const totalDeliverables = (socialConfig.deliverables?.posts || 0) + 
         (socialConfig.deliverables?.reels || 0) + (socialConfig.deliverables?.stories || 0);
       if (totalDeliverables === 0) {
-        console.log('Validation error: No deliverables specified for Social Media service');
         return next(new Error('At least one deliverable must be greater than 0'));
       }
     }
   }
   
-  console.log('Pre-save validation passed, proceeding to save');
   next();
 });
 
@@ -121,23 +112,6 @@ projectSchema.index({ projectType: 1, status: 1 });
 projectSchema.index({ assignedManager: 1, status: 1 });
 projectSchema.index({ 'recurringProject.billingStatus': 1, 'recurringProject.nextBillingDate': 1 });
 projectSchema.index({ createdAt: -1 });
-
-// Add post-save middleware for debugging
-projectSchema.post('save', function(doc, next) {
-  console.log('Post-save: Project saved successfully with ID:', doc._id);
-  console.log('Saved project data:', JSON.stringify(doc.toObject(), null, 2));
-  next();
-});
-
-// Add error handling middleware
-projectSchema.post('save', function(error, doc, next) {
-  if (error) {
-    console.error('Post-save error:', error);
-    next(error);
-  } else {
-    next();
-  }
-});
 
 const Project = mongoose.model("Project", projectSchema);
 export default Project;

@@ -43,8 +43,6 @@ export const getProjectById = async (req, res) => {
 // Create a new project
 export const createProject = async (req, res) => {
   try {
-    console.log('Received project data:', JSON.stringify(req.body, null, 2));
-    
     // Additional validation for social media projects
     if (req.body.projectType === 'RECURRING' && req.body.recurringProject) {
       const serviceTypes = req.body.recurringProject.serviceType || [];
@@ -73,7 +71,6 @@ export const createProject = async (req, res) => {
     }
     
     const project = await Project.create(req.body);
-    console.log('Project created successfully:', project._id);
     
     res.status(201).json({
       success: true,
@@ -81,7 +78,6 @@ export const createProject = async (req, res) => {
       message: "Project created successfully",
     });
   } catch (error) {
-    console.error('Project creation error:', error);
     res.status(400).json({ message: error.message });
   }
 };
@@ -93,8 +89,6 @@ export const updateProject = async (req, res) => {
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
     }
-
-    console.log('Updating project with data:', JSON.stringify(req.body, null, 2));
 
     // Additional validation for social media projects
     if (req.body.projectType === 'RECURRING' && req.body.recurringProject) {
@@ -123,21 +117,14 @@ export const updateProject = async (req, res) => {
       }
     }
 
-    // Store current status if changing from Active to On Hold/Cancelled
-    if (project.status === 'Active' && ['On Hold', 'Cancelled'].includes(req.body.status)) {
-      // Status change logged
-    }
-
     const updatedProject = await Project.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
     );
 
-    console.log('Project updated successfully:', updatedProject._id);
     res.status(200).json({ success: true, updatedProject });
   } catch (error) {
-    console.error('Project update error:', error);
     res.status(500).json({ message: "Error updating project", error: error.message });
   }
 };
@@ -150,7 +137,6 @@ export const updateAllProgress = async (req, res) => {
       message: "Progress update feature removed" 
     });
   } catch (error) {
-    console.error('Update progress error:', error);
     res.status(500).json({ message: error.message });
   }
 };
