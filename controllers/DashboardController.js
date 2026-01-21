@@ -168,7 +168,8 @@ export const getDashboardAnalytics = async (req, res) => {
     const invoices = invoiceMetrics[0] || { totalInvoices: 0, totalInvoiceAmount: 0, overdueInvoiceCount: 0 };
 
     // Calculate derived values (single source of truth)
-    const dueAmount = projects.expectedRevenue - projects.paidAmount;
+    const totalPaidAmount = projects.paidAmount + projects.advanceAmount;
+    const dueAmount = projects.expectedRevenue - totalPaidAmount;
     const oneTimeDue = projects.oneTimeTotal - projects.oneTimePaid;
     const recurringDue = projects.recurringMonthly + projects.recurringYearly; // Assuming all recurring is due
 
@@ -204,7 +205,7 @@ export const getDashboardAnalytics = async (req, res) => {
       money: {
         expectedRevenue: projects.expectedRevenue,
         totalInvoiceAmount: invoices.totalInvoiceAmount,
-        paidAmount: projects.paidAmount,
+        paidAmount: totalPaidAmount,
         advanceAmount: projects.advanceAmount,
         dueAmount,
         thisMonthRevenue: projects.thisMonthRevenue
@@ -253,7 +254,7 @@ export const getDashboardAnalytics = async (req, res) => {
       invoiceMetrics: {
         totalInvoices: invoices.totalInvoices,
         totalInvoiceAmount: invoices.totalInvoiceAmount,
-        paidAmount: projects.paidAmount, // Reference to money.paidAmount
+        paidAmount: totalPaidAmount, // Reference to money.paidAmount (includes advance)
         dueAmount, // Reference to money.dueAmount
         overdueInvoiceCount: invoices.overdueInvoiceCount
       },
