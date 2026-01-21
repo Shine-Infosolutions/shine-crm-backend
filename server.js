@@ -21,6 +21,7 @@ import unitRoutes from "./routes/UnitRoutes.js";
 import settingsRoutes from "./routes/SettingsRoutes.js";
 import backupRoutes from "./routes/BackupRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
+import "./jobs/autoRenewJob.js"; // Start auto-renew cron job
 const app = express();
 const port = process.env.PORT || 5000;
 

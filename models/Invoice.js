@@ -95,6 +95,11 @@ const invoiceSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    lastInvoiceId: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'Invoice',
+      default: [],
+    },
   },
   { timestamps: true }
 );

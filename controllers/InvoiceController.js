@@ -14,7 +14,7 @@ const handleCustomerGST = (data) => {
 const allowedFields = [
   'isGSTInvoice', 'customerGST', 'invoiceDate', 'dueDate', 'customerName',
   'customerAddress', 'customerPhone', 'customerEmail', 'dispatchThrough',
-  'customerAadhar', 'productDetails', 'amountDetails', 'notes'
+  'customerAadhar', 'productDetails', 'amountDetails', 'notes', 'lastInvoiceId'
 ];
 
 // Sanitize input data
@@ -43,11 +43,57 @@ export const createInvoice = async (req, res) => {
       invoiceData.isGSTInvoice = true;
     }
     
+    // Ensure required fields have default values if missing
+    if (!invoiceData.customerName || invoiceData.customerName.trim() === '') {
+      invoiceData.customerName = 'Customer Name Required';
+    }
+    
+    if (!invoiceData.customerAddress || invoiceData.customerAddress.trim() === '') {
+      invoiceData.customerAddress = 'Complete address required for invoice';
+    }
+    
+    if (!invoiceData.customerPhone || invoiceData.customerPhone.trim() === '') {
+      invoiceData.customerPhone = 'Phone number required';
+    }
+    
+    if (!invoiceData.customerEmail || invoiceData.customerEmail.trim() === '') {
+      invoiceData.customerEmail = 'email@required.com';
+    }
+    
+    if (!invoiceData.invoiceDate) {
+      invoiceData.invoiceDate = new Date();
+    }
+    
+    if (!invoiceData.dueDate) {
+      invoiceData.dueDate = new Date();
+    }
+    
+    // Ensure productDetails has at least one item
+    if (!invoiceData.productDetails || invoiceData.productDetails.length === 0) {
+      invoiceData.productDetails = [{
+        description: 'Service/Product Description Required',
+        unit: 'Unit',
+        quantity: 1,
+        price: 0,
+        discountPercentage: 0,
+        amount: 0
+      }];
+    }
+    
+    // Ensure amountDetails exists
+    if (!invoiceData.amountDetails) {
+      invoiceData.amountDetails = {
+        gstPercentage: 18,
+        discountOnTotal: 0,
+        totalAmount: 0
+      };
+    }
+    
     handleCustomerGST(invoiceData);
     
     const invoice = new Invoice(invoiceData);
     await invoice.save();
-    res.status(201).json({ success: true, data: invoice });
+    res.status(201).json({ success: true, data: invoice, invoice });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
   }

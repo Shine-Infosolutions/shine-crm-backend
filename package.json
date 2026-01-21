@@ -9,7 +9,12 @@
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["crm", "api", "express", "mongodb"],
+  "keywords": [
+    "crm",
+    "api",
+    "express",
+    "mongodb"
+  ],
   "author": "Shine Infosolutions",
   "license": "ISC",
   "dependencies": {
@@ -31,6 +36,7 @@
     "mongoose": "^8.16.0",
     "multer": "^2.0.1",
     "multer-storage-cloudinary": "^4.0.0",
+    "node-cron": "^4.2.1",
     "puppeteer": "^24.23.0"
   },
   "devDependencies": {
