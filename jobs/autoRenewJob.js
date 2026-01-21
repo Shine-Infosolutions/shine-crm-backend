@@ -4,13 +4,10 @@ import Invoice from '../models/Invoice.js';
 import { generateInvoiceNumber } from '../utils/generateInvoiceNumber.js';
 
 // Run daily at 9 AM
-cron.schedule('0 9 * * *', async () => {
-  console.log('Running auto-renew job...');
-  
-  try {
+cron.schedule('0 9 * * *', async () => {try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // Find projects with auto-renew enabled and billing date is today
     const projectsToRenew = await Project.find({
       projectType: 'RECURRING',
@@ -24,7 +21,7 @@ cron.schedule('0 9 * * *', async () => {
       try {
         // Get all previous invoice IDs from project
         const previousInvoiceIds = project.recurringProject.lastInvoiceId || [];
-        
+
         // Create new invoice
         const invoiceData = {
           isGSTInvoice: project.clientGST && project.clientGST !== 'N/A',
@@ -61,7 +58,7 @@ cron.schedule('0 9 * * *', async () => {
         // Calculate next billing date
         const currentDate = new Date(project.recurringProject.nextBillingDate);
         let nextDate = new Date(currentDate);
-        
+
         switch (project.recurringProject.billingCycle) {
           case 'Monthly':
             nextDate.setMonth(nextDate.getMonth() + 1);
@@ -78,17 +75,13 @@ cron.schedule('0 9 * * *', async () => {
         await Project.findByIdAndUpdate(project._id, {
           $push: { 'recurringProject.lastInvoiceId': newInvoice._id },
           'recurringProject.nextBillingDate': nextDate
-        });
-
-        console.log(`Auto-renewed project: ${project.projectName}, Invoice: ${newInvoice.invoiceNumber}`);
-        
-      } catch (error) {
-        console.error(`Failed to auto-renew project ${project.projectName}:`, error);
-      }
+        });} catch (error) {
+    // Error handled silently
+  }
     }
-    
+
   } catch (error) {
-    console.error('Auto-renew job failed:', error);
+    // Error handled silently
   }
 });
 

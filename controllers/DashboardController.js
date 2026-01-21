@@ -29,8 +29,8 @@ export const getDashboardAnalytics = async (req, res) => {
             _id: null,
             totalLeads: { $sum: 1 },
             interestedLeads: { $sum: { $cond: ["$isInterested", 1, 0] } },
-            meetingsScheduled: { 
-              $sum: { $cond: [{ $gt: [{ $size: { $ifNull: ["$meetingDates", []] } }, 0] }, 1, 0] } 
+            meetingsScheduled: {
+              $sum: { $cond: [{ $gt: [{ $size: { $ifNull: ["$meetingDates", []] } }, 0] }, 1, 0] }
             },
             leadsConvertedToProjects: { $sum: { $cond: [{ $eq: ["$status", "Won"] }, 1, 0] } },
             lostLeads: { $sum: { $cond: [{ $eq: ["$status", "Lost"] }, 1, 0] } }
@@ -48,7 +48,7 @@ export const getDashboardAnalytics = async (req, res) => {
             completedProjects: { $sum: { $cond: [{ $in: ["$status", ["Completed", "Close"]] }, 1, 0] } },
             handoverPendingProjects: { $sum: { $cond: [{ $eq: ["$status", "Pending"] }, 1, 0] } },
             onHoldProjects: { $sum: { $cond: [{ $eq: ["$status", "On Hold"] }, 1, 0] } },
-            
+
             // Revenue calculations (single source)
             expectedRevenue: {
               $sum: {
@@ -77,7 +77,7 @@ export const getDashboardAnalytics = async (req, res) => {
                 ]
               }
             },
-            
+
             // Project type wise revenue
             oneTimeTotal: {
               $sum: {
@@ -115,7 +115,7 @@ export const getDashboardAnalytics = async (req, res) => {
                 ]
               }
             },
-            
+
             // This month revenue
             thisMonthRevenue: {
               $sum: {
@@ -151,7 +151,7 @@ export const getDashboardAnalytics = async (req, res) => {
       ]),
 
       Employee.countDocuments(),
-      
+
       // Recent data for lists
       Task.find({}, 'title description status updatedAt').sort({ updatedAt: -1 }).limit(3),
       Lead.find({}, 'name projectType createdAt status meetingDates').sort({ createdAt: -1 }).limit(3),
@@ -160,10 +160,10 @@ export const getDashboardAnalytics = async (req, res) => {
 
     // Process results with defaults
     const leads = leadMetrics[0] || { totalLeads: 0, interestedLeads: 0, meetingsScheduled: 0, leadsConvertedToProjects: 0, lostLeads: 0 };
-    const projects = projectMetrics[0] || { 
+    const projects = projectMetrics[0] || {
       totalProjects: 0, activeProjects: 0, completedProjects: 0, handoverPendingProjects: 0, onHoldProjects: 0,
-      expectedRevenue: 0, paidAmount: 0, advanceAmount: 0, oneTimeTotal: 0, oneTimePaid: 0, 
-      recurringMonthly: 0, recurringYearly: 0, thisMonthRevenue: 0 
+      expectedRevenue: 0, paidAmount: 0, advanceAmount: 0, oneTimeTotal: 0, oneTimePaid: 0,
+      recurringMonthly: 0, recurringYearly: 0, thisMonthRevenue: 0
     };
     const invoices = invoiceMetrics[0] || { totalInvoices: 0, totalInvoiceAmount: 0, overdueInvoiceCount: 0 };
 
@@ -173,8 +173,8 @@ export const getDashboardAnalytics = async (req, res) => {
     const recurringDue = projects.recurringMonthly + projects.recurringYearly; // Assuming all recurring is due
 
     // Get alerts data
-    const upcomingMeetings = recentLeads.filter(lead => 
-      lead.meetingDates?.some(meeting => 
+    const upcomingMeetings = recentLeads.filter(lead =>
+      lead.meetingDates?.some(meeting =>
         new Date(meeting.dateTime) >= now && new Date(meeting.dateTime) <= next7Days
       )
     );
@@ -328,10 +328,8 @@ export const getDashboardAnalytics = async (req, res) => {
       data: analytics
     });
 
-  } catch (error) {
-    console.error('Dashboard analytics error:', error);
-    res.status(500).json({ 
-      success: false, 
+  } catch (error) {res.status(500).json({
+      success: false,
       message: error.message,
       data: null
     });
@@ -413,16 +411,16 @@ export const getRecentTasks = async (req, res) => {
 export const getUpcomingAutoRenewals = async (req, res) => {
   try {
     const now = new Date();
-    
+
     const upcomingRenewals = await Project.find({
       projectType: "RECURRING",
       "recurringProject.autoRenew": true
     }, 'projectName clientName recurringProject.nextBillingDate recurringProject.recurringAmount recurringProject.billingCycle')
     .sort({ 'recurringProject.nextBillingDate': 1 })
     .limit(10);
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       data: upcomingRenewals.map(project => ({
         projectName: project.projectName,
         clientName: project.clientName,
