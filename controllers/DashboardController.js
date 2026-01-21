@@ -9,6 +9,8 @@ export const getDashboardAnalytics = async (req, res) => {
   try {
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
     const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const next30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
@@ -16,6 +18,7 @@ export const getDashboardAnalytics = async (req, res) => {
     const [
       leadMetrics,
       projectMetrics,
+      lastMonthProjectMetrics,
       invoiceMetrics,
       employeeCount,
       recentTasks,
@@ -64,7 +67,7 @@ export const getDashboardAnalytics = async (req, res) => {
                 $cond: [
                   { $eq: ["$projectType", "ONE_TIME"] },
                   { $ifNull: ["$oneTimeProject.paidAmount", 0] },
-                  0
+                  0  // Recurring payments are not considered "paid" until actually received
                 ]
               }
             },
@@ -136,6 +139,46 @@ export const getDashboardAnalytics = async (req, res) => {
         }
       ]),
 
+      // Last month project metrics
+      Project.aggregate([
+        {
+          $group: {
+            _id: null,
+            lastMonthRevenue: {
+              $sum: {
+                $cond: [
+                  { $and: [
+                    { $gte: ["$createdAt", lastMonthStart] },
+                    { $lt: ["$createdAt", thisMonthStart] }
+                  ]},
+                  {
+                    $cond: [
+                      { $eq: ["$projectType", "ONE_TIME"] },
+                      { $ifNull: ["$oneTimeProject.totalAmount", 0] },
+                      { $ifNull: ["$recurringProject.recurringAmount", 0] }
+                    ]
+                  },
+                  0
+                ]
+              }
+            },
+            lastMonthRecurring: {
+              $sum: {
+                $cond: [
+                  { $and: [
+                    { $gte: ["$createdAt", lastMonthStart] },
+                    { $lt: ["$createdAt", thisMonthStart] },
+                    { $eq: ["$projectType", "RECURRING"] }
+                  ]},
+                  { $ifNull: ["$recurringProject.recurringAmount", 0] },
+                  0
+                ]
+              }
+            }
+          }
+        }
+      ]),
+
       // Invoice metrics
       Invoice.aggregate([
         {
@@ -165,6 +208,7 @@ export const getDashboardAnalytics = async (req, res) => {
       expectedRevenue: 0, paidAmount: 0, advanceAmount: 0, oneTimeTotal: 0, oneTimePaid: 0,
       recurringMonthly: 0, recurringYearly: 0, thisMonthRevenue: 0
     };
+    const lastMonthProjects = lastMonthProjectMetrics[0] || { lastMonthRevenue: 0, lastMonthRecurring: 0 };
     const invoices = invoiceMetrics[0] || { totalInvoices: 0, totalInvoiceAmount: 0, overdueInvoiceCount: 0 };
 
     // Calculate derived values (single source of truth)
@@ -232,7 +276,37 @@ export const getDashboardAnalytics = async (req, res) => {
         }
       },
 
-      // 3. Leads Funnel Metrics
+      // 3. Monthly Earnings Tracking (calculated from database)
+      monthlyEarnings: {
+        previousMonth: {
+          recurring: projects.recurringMonthly, // Assume recurring was same last month
+          oneTime: 0, // No way to track last month one-time without payment history
+          total: projects.recurringMonthly
+        },
+        currentMonth: {
+          recurring: projects.recurringMonthly,
+          oneTime: Math.max(0, projects.thisMonthRevenue - projects.recurringMonthly),
+          total: projects.thisMonthRevenue
+        },
+        nextMonthExpected: {
+          recurring: projects.recurringMonthly,
+          oneTime: 0,
+          total: projects.recurringMonthly
+        },
+        oneTimeProjectStatus: {
+          totalAmount: projects.oneTimeTotal,
+          paidAmount: projects.oneTimePaid,
+          dueAmount: oneTimeDue
+        },
+        // Real payment calculations
+        actualPayments: {
+          totalPaid: totalPaidAmount + projects.recurringMonthly, // Include recurring received
+          advanceAmount: projects.advanceAmount,
+          dueAmount: Math.max(0, dueAmount - projects.advanceAmount) // Net due after advance
+        }
+      },
+
+      // 4. Leads Funnel Metrics
       leadsFunnel: {
         totalLeads: leads.totalLeads,
         interestedLeads: leads.interestedLeads,
@@ -241,7 +315,7 @@ export const getDashboardAnalytics = async (req, res) => {
         lostLeads: leads.lostLeads
       },
 
-      // 4. Projects Metrics (counts only)
+      // 5. Projects Metrics (counts only)
       projectsMetrics: {
         totalProjects: projects.totalProjects,
         activeProjects: projects.activeProjects,
@@ -250,7 +324,7 @@ export const getDashboardAnalytics = async (req, res) => {
         onHoldProjects: projects.onHoldProjects
       },
 
-      // 5. Invoice Metrics
+      // 6. Invoice Metrics
       invoiceMetrics: {
         totalInvoices: invoices.totalInvoices,
         totalInvoiceAmount: invoices.totalInvoiceAmount,
@@ -259,7 +333,7 @@ export const getDashboardAnalytics = async (req, res) => {
         overdueInvoiceCount: invoices.overdueInvoiceCount
       },
 
-      // 6. Alerts (lists only)
+      // 7. Alerts (lists only)
       alerts: {
         upcomingMeetings: upcomingMeetings.map(lead => ({
           leadName: lead.name,
@@ -289,7 +363,7 @@ export const getDashboardAnalytics = async (req, res) => {
         }))
       },
 
-      // 7. Recent Data (for UI lists)
+      // 8. Recent Data (for UI lists)
       recentData: {
         leads: recentLeads.map(lead => ({
           _id: lead._id,
@@ -315,7 +389,7 @@ export const getDashboardAnalytics = async (req, res) => {
         }))
       },
 
-      // 8. Summary counts (for backward compatibility)
+      // 9. Summary counts (for backward compatibility)
       summary: {
         totalEmployees: employeeCount,
         totalLeads: leads.totalLeads,
@@ -433,5 +507,96 @@ export const getUpcomingAutoRenewals = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Detailed paid amount calculations for dashboard cards
+export const getProjectPaidAmountDetails = async (req, res) => {
+  try {
+    const [oneTimeDetails, recurringDetails] = await Promise.all([
+      // One-time project paid amounts
+      Project.aggregate([
+        { $match: { projectType: "ONE_TIME" } },
+        {
+          $group: {
+            _id: null,
+            totalProjects: { $sum: 1 },
+            totalAmount: { $sum: { $ifNull: ["$oneTimeProject.totalAmount", 0] } },
+            totalPaid: { $sum: { $ifNull: ["$oneTimeProject.paidAmount", 0] } },
+            totalAdvance: { $sum: { $ifNull: ["$oneTimeProject.advanceAmount", 0] } },
+            completedProjects: { $sum: { $cond: [{ $in: ["$status", ["Completed", "Close"]] }, 1, 0] } },
+            activeProjects: { $sum: { $cond: [{ $in: ["$status", ["Active", "Start", "Progress"]] }, 1, 0] } }
+          }
+        }
+      ]),
+      
+      // Recurring project billing history
+      Project.aggregate([
+        { $match: { projectType: "RECURRING" } },
+        { $unwind: { path: "$recurringProject.billingHistory", preserveNullAndEmptyArrays: true } },
+        {
+          $group: {
+            _id: null,
+            totalProjects: { $sum: { $cond: [{ $eq: ["$recurringProject.billingHistory", null] }, 1, 0] } },
+            totalRecurringAmount: { $sum: { $ifNull: ["$recurringProject.recurringAmount", 0] } },
+            totalBilledAmount: { $sum: { $ifNull: ["$recurringProject.billingHistory.amount", 0] } },
+            totalPaidBills: { $sum: { $cond: [{ $eq: ["$recurringProject.billingHistory.status", "Paid"] }, "$recurringProject.billingHistory.amount", 0] } },
+            pendingBills: { $sum: { $cond: [{ $eq: ["$recurringProject.billingHistory.status", "Pending"] }, "$recurringProject.billingHistory.amount", 0] } },
+            activeProjects: { $sum: { $cond: [{ $eq: ["$recurringProject.billingStatus", "Active"] }, 1, 0] } },
+            monthlyProjects: { $sum: { $cond: [{ $eq: ["$recurringProject.billingCycle", "Monthly"] }, 1, 0] } },
+            yearlyProjects: { $sum: { $cond: [{ $eq: ["$recurringProject.billingCycle", "Yearly"] }, 1, 0] } }
+          }
+        }
+      ])
+    ]);
+
+    const oneTime = oneTimeDetails[0] || {
+      totalProjects: 0, totalAmount: 0, totalPaid: 0, totalAdvance: 0, completedProjects: 0, activeProjects: 0
+    };
+    
+    const recurring = recurringDetails[0] || {
+      totalProjects: 0, totalRecurringAmount: 0, totalBilledAmount: 0, totalPaidBills: 0, 
+      pendingBills: 0, activeProjects: 0, monthlyProjects: 0, yearlyProjects: 0
+    };
+
+    const totalPaidOneTime = oneTime.totalPaid + oneTime.totalAdvance;
+    const pendingOneTime = oneTime.totalAmount - totalPaidOneTime;
+    const paymentCompletionRate = oneTime.totalAmount > 0 ? ((totalPaidOneTime / oneTime.totalAmount) * 100).toFixed(1) : 0;
+    const recurringCollectionRate = recurring.totalBilledAmount > 0 ? ((recurring.totalPaidBills / recurring.totalBilledAmount) * 100).toFixed(1) : 0;
+
+    res.json({
+      success: true,
+      data: {
+        oneTimeProjects: {
+          totalProjects: oneTime.totalProjects,
+          totalAmount: oneTime.totalAmount,
+          totalPaid: oneTime.totalPaid,
+          totalAdvance: oneTime.totalAdvance,
+          totalCollected: totalPaidOneTime,
+          pendingAmount: pendingOneTime,
+          completedProjects: oneTime.completedProjects,
+          activeProjects: oneTime.activeProjects,
+          paymentCompletionRate: parseFloat(paymentCompletionRate)
+        },
+        recurringProjects: {
+          totalProjects: recurring.totalProjects,
+          totalRecurringAmount: recurring.totalRecurringAmount,
+          totalBilledAmount: recurring.totalBilledAmount,
+          totalPaidBills: recurring.totalPaidBills,
+          pendingBills: recurring.pendingBills,
+          activeProjects: recurring.activeProjects,
+          monthlyProjects: recurring.monthlyProjects,
+          yearlyProjects: recurring.yearlyProjects,
+          recurringCollectionRate: parseFloat(recurringCollectionRate)
+        },
+        summary: {
+          totalProjectsAllTypes: oneTime.totalProjects + recurring.totalProjects,
+          totalCollectedAllTypes: totalPaidOneTime + recurring.totalPaidBills,
+          totalPendingAllTypes: pendingOneTime + recurring.pendingBills
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
