@@ -276,12 +276,12 @@ export const getDashboardAnalytics = async (req, res) => {
         }
       },
 
-      // 3. Monthly Earnings Tracking (calculated from database)
+      // 3. Monthly Earnings Tracking (calculated from database and billing history)
       monthlyEarnings: {
         previousMonth: {
-          recurring: projects.recurringMonthly, // Assume recurring was same last month
-          oneTime: 0, // No way to track last month one-time without payment history
-          total: projects.recurringMonthly
+          recurring: lastMonthProjects.lastMonthRecurring || 0,
+          oneTime: Math.max(0, lastMonthProjects.lastMonthRevenue - lastMonthProjects.lastMonthRecurring),
+          total: lastMonthProjects.lastMonthRevenue || 0
         },
         currentMonth: {
           recurring: projects.recurringMonthly,
@@ -298,11 +298,12 @@ export const getDashboardAnalytics = async (req, res) => {
           paidAmount: projects.oneTimePaid,
           dueAmount: oneTimeDue
         },
-        // Real payment calculations
+        // Real payment calculations including auto-renewal tracking
         actualPayments: {
-          totalPaid: totalPaidAmount + projects.recurringMonthly, // Include recurring received
+          totalPaid: totalPaidAmount + projects.recurringMonthly,
           advanceAmount: projects.advanceAmount,
-          dueAmount: Math.max(0, dueAmount - projects.advanceAmount) // Net due after advance
+          dueAmount: Math.max(0, dueAmount - projects.advanceAmount),
+          autoRenewalRevenue: projects.recurringMonthly // Track auto-renewal contribution
         }
       },
 
