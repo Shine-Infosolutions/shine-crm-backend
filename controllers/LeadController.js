@@ -1,5 +1,21 @@
 import Lead from "../models/Lead.js";
 
+// Get leads count only
+export const getLeadsCount = async (req, res) => {
+  try {
+    const count = await Lead.countDocuments();
+    res.status(200).json({
+      success: true,
+      count
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 // Get all leads
 export const getLeads = async (req, res) => {
   try {
@@ -48,7 +64,18 @@ export const getLeadById = async (req, res) => {
 // Create a new lead
 export const createLead = async (req, res) => {
   try {
-    const savedLead = await Lead.create(req.body);
+    // Handle backward compatibility for date fields
+    const leadData = { ...req.body };
+    
+    // Convert single dates to array format if needed
+    if (leadData.meetingDate && !leadData.meetingDates?.length) {
+      leadData.meetingDates = [{ dateTime: leadData.meetingDate, addedAt: new Date() }];
+    }
+    if (leadData.clientRequestedCallDate && !leadData.clientCallDates?.length) {
+      leadData.clientCallDates = [{ dateTime: leadData.clientRequestedCallDate, addedAt: new Date() }];
+    }
+    
+    const savedLead = await Lead.create(leadData);
     res.status(201).json({ 
       success: true, 
       savedLead, 
@@ -62,9 +89,20 @@ export const createLead = async (req, res) => {
 // Update a lead
 export const updateLead = async (req, res) => {
   try {
+    // Handle backward compatibility for date fields
+    const updateData = { ...req.body };
+    
+    // Convert single dates to array format if needed
+    if (updateData.meetingDate && !updateData.meetingDates?.length) {
+      updateData.meetingDates = [{ dateTime: updateData.meetingDate, addedAt: new Date() }];
+    }
+    if (updateData.clientRequestedCallDate && !updateData.clientCallDates?.length) {
+      updateData.clientCallDates = [{ dateTime: updateData.clientRequestedCallDate, addedAt: new Date() }];
+    }
+    
     const updatedLead = await Lead.findByIdAndUpdate(
       req.params.id, 
-      req.body, 
+      updateData, 
       { new: true, runValidators: true }
     );
 

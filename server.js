@@ -20,6 +20,8 @@ import employeeTimesheetRoutes from "./routes/EmployeeTimesheetRoutes.js";
 import unitRoutes from "./routes/UnitRoutes.js";
 import settingsRoutes from "./routes/SettingsRoutes.js";
 import backupRoutes from "./routes/BackupRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
+import "./jobs/autoRenewJob.js"; // Start auto-renew cron job
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -41,7 +43,9 @@ app.use(cors({
     "http://localhost:5173",
     "http://localhost:5000", 
     "https://shine-crm-backend.vercel.app",
-    "https://shine-crm-frontend.vercel.app"
+    "https://shine-crm-backend-eight.vercel.app",
+    "https://shine-crm-frontend.vercel.app",
+    "https://shine-crm-frontend-sable.vercel.app"
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -51,6 +55,7 @@ app.use(cors({
 // Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/employees", employeeRoutes);

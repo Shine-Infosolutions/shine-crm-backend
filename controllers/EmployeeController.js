@@ -186,6 +186,16 @@ export const getEmployees = async (req, res) => {
     });
   }
 };
+
+// Get Employee Count
+export const getEmployeesCount = async (req, res) => {
+  try {
+    const count = await Employee.countDocuments();
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
  
 export const getEmployeeById = async (req, res) => {
   try {
@@ -613,33 +623,30 @@ export const acceptContract = async (req, res, next) => {
 export const updateContract = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updates = {};
-
-    if (req.body && typeof req.body === 'object') {
-      // Handle nested acceptance object specially
-      if (req.body.acceptance) {
-        Object.entries(req.body.acceptance).forEach(([key, val]) => {
-          updates[`contract_agreement.acceptance.${key}`] = val;
-        });
-      } else {
-        // Handle other contract fields
-        Object.entries(req.body).forEach(([key, val]) => {
-          updates[`contract_agreement.${key}`] = val;
-        });
-      }
-    }
+    
+    // Completely replace the contract_agreement with new data
+    const contractData = {
+      ...req.body,
+      lastEdited: new Date()
+    };
 
     const updated = await Employee.findByIdAndUpdate(
       id,
-      { $set: updates },
+      { 
+        $set: { 
+          'contract_agreement': contractData,
+          'updated_at': new Date()
+        }
+      },
       { new: true, runValidators: true }
-    );
+    ).select('-password');
 
     if (!updated) throw createHttpError(404, "Employee not found");
 
     res.status(200).json({
       success: true,
-      contract: updated.contract_agreement
+      contract: updated.contract_agreement,
+      message: "Contract updated successfully"
     });
   } catch (err) {
     next(err);

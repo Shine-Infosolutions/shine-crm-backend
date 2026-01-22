@@ -5,19 +5,19 @@ import mongoose from 'mongoose';
 // Time In
 export const timeIn = async (req, res) => {
   try {
-    
+
     const { employee_id } = req.body;
-    
+
     if (!employee_id) {
       return res.status(400).json({
         success: false,
         message: 'employee_id is required'
       });
     }
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // Check if employee exists
     const employee = await Employee.findById(employee_id);
     if (!employee) {
@@ -113,7 +113,7 @@ export const getAttendance = async (req, res) => {
     if (employee_id && employee_id !== 'undefined' && employee_id !== 'null' && mongoose.Types.ObjectId.isValid(employee_id)) {
       filter.employee_id = employee_id;
     }
-    
+
     if (date) {
       const targetDate = new Date(date);
       targetDate.setHours(0, 0, 0, 0);
@@ -124,7 +124,6 @@ export const getAttendance = async (req, res) => {
       filter.date = { $gte: startDate, $lte: endDate };
     }
 
-    
     const attendance = await Attendance.find(filter)
       .populate('employee_id', 'name employee_id')
       .sort({ date: -1 });
@@ -256,41 +255,62 @@ export const getDayWorkHistory = async (req, res) => {
 
 // Manual Checkout
 export const checkout = async (req, res) => {
-  try {
-    const { employee_id, checkout_time } = req.body;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  try {const { employee_id, checkout_time } = req.body;
 
-    const attendance = await Attendance.findOne({
-      employee_id,
-      date: today
-    });
+    if (!employee_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'employee_id is required'
+      });
+    }
 
-    if (!attendance) {
+    // Validate employee_id format
+    if (!mongoose.Types.ObjectId.isValid(employee_id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid employee_id format'
+      });
+    }
+
+    // Check if employee exists
+    const employee = await Employee.findById(employee_id);
+    if (!employee) {
       return res.status(404).json({
         success: false,
-        message: 'No time in record found for today'
+        message: 'Employee not found'
+      });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);const attendance = await Attendance.findOne({
+      employee_id,
+      date: today
+    });if (!attendance) {
+      return res.status(404).json({
+        success: false,
+        message: 'No check-in record found for today. Please check in first before checking out.'
       });
     }
 
     if (attendance.time_out) {
       return res.status(400).json({
         success: false,
-        message: 'Already checked out today'
+        message: 'Already checked out today',
+        data: {
+          time_out: attendance.time_out,
+          is_manual_checkout: attendance.is_manual_checkout
+        }
       });
     }
 
     attendance.time_out = checkout_time ? new Date(checkout_time) : new Date();
     attendance.is_manual_checkout = !!checkout_time;
-    await attendance.save();
-
-    res.status(200).json({
+    await attendance.save();res.status(200).json({
       success: true,
       data: attendance,
       message: 'Checkout recorded successfully'
     });
-  } catch (error) {
-    res.status(500).json({
+  } catch (error) {res.status(500).json({
       success: false,
       message: error.message
     });
@@ -303,7 +323,7 @@ export const getEmployeeAttendance = async (req, res) => {
     const employeeId = req.user._id; // Get from authenticated user
     const { date, month, year } = req.query;
     let filter = { employee_id: employeeId };
-    
+
     if (date) {
       const targetDate = new Date(date);
       targetDate.setHours(0, 0, 0, 0);
@@ -320,7 +340,6 @@ export const getEmployeeAttendance = async (req, res) => {
       filter.date = { $gte: startDate, $lte: endDate };
     }
 
-    
     const attendance = await Attendance.find(filter)
       .populate('employee_id', 'name employee_id')
       .sort({ date: -1 });
@@ -368,7 +387,7 @@ export const getWorkHistory = async (req, res) => {
 
     // Group by date
     const workHistory = {};
-    
+
     attendance.forEach(att => {
       const dateKey = att.date.toISOString().split('T')[0];
       workHistory[dateKey] = {
@@ -391,7 +410,7 @@ export const getWorkHistory = async (req, res) => {
       }
     });
 
-    const sortedHistory = Object.values(workHistory).sort((a, b) => 
+    const sortedHistory = Object.values(workHistory).sort((a, b) =>
       new Date(a.date) - new Date(b.date)
     );
 
