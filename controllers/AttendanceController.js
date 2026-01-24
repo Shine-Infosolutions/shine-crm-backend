@@ -2,106 +2,106 @@ import Attendance from '../models/Attendance.js';
 import Employee from '../models/Employee.js';
 import mongoose from 'mongoose';
 
-// Time In
-export const timeIn = async (req, res) => {
-  try {
+// Time In - COMMENTED OUT (Using RFID-based attendance)
+// export const timeIn = async (req, res) => {
+//   try {
 
-    const { employee_id } = req.body;
+//     const { employee_id } = req.body;
 
-    if (!employee_id) {
-      return res.status(400).json({
-        success: false,
-        message: 'employee_id is required'
-      });
-    }
+//     if (!employee_id) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'employee_id is required'
+//       });
+//     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
 
-    // Check if employee exists
-    const employee = await Employee.findById(employee_id);
-    if (!employee) {
-      return res.status(404).json({
-        success: false,
-        message: 'Employee not found'
-      });
-    }
+//     // Check if employee exists
+//     const employee = await Employee.findById(employee_id);
+//     if (!employee) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Employee not found'
+//       });
+//     }
 
-    // Check if already timed in today
-    const existingAttendance = await Attendance.findOne({
-      employee_id,
-      date: today
-    });
+//     // Check if already timed in today
+//     const existingAttendance = await Attendance.findOne({
+//       employee_id,
+//       date: today
+//     });
 
-    if (existingAttendance) {
-      return res.status(400).json({
-        success: false,
-        message: 'Already timed in today'
-      });
-    }
+//     if (existingAttendance) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Already timed in today'
+//       });
+//     }
 
-    const attendance = new Attendance({
-      employee_id,
-      date: today,
-      time_in: new Date()
-    });
+//     const attendance = new Attendance({
+//       employee_id,
+//       date: today,
+//       time_in: new Date()
+//     });
 
-    await attendance.save();
+//     await attendance.save();
 
-    res.status(201).json({
-      success: true,
-      data: attendance,
-      message: 'Time in recorded successfully'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
+//     res.status(201).json({
+//       success: true,
+//       data: attendance,
+//       message: 'Time in recorded successfully'
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: error.message
+//     });
+//   }
+// };
 
-// Time Out
-export const timeOut = async (req, res) => {
-  try {
-    const { employee_id } = req.body;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+// Time Out - COMMENTED OUT (Using RFID-based attendance)
+// export const timeOut = async (req, res) => {
+//   try {
+//     const { employee_id } = req.body;
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
 
-    const attendance = await Attendance.findOne({
-      employee_id,
-      date: today
-    });
+//     const attendance = await Attendance.findOne({
+//       employee_id,
+//       date: today
+//     });
 
-    if (!attendance) {
-      return res.status(404).json({
-        success: false,
-        message: 'No time in record found for today'
-      });
-    }
+//     if (!attendance) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'No time in record found for today'
+//       });
+//     }
 
-    if (attendance.time_out) {
-      return res.status(400).json({
-        success: false,
-        message: 'Already timed out today'
-      });
-    }
+//     if (attendance.time_out) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Already timed out today'
+//       });
+//     }
 
-    attendance.time_out = new Date();
-    await attendance.save();
+//     attendance.time_out = new Date();
+//     await attendance.save();
 
-    res.status(200).json({
-      success: true,
-      data: attendance,
-      message: 'Time out recorded successfully'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
+//     res.status(200).json({
+//       success: true,
+//       data: attendance,
+//       message: 'Time out recorded successfully'
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: error.message
+//     });
+//   }
+// };
 
 // Get attendance records
 export const getAttendance = async (req, res) => {
@@ -253,69 +253,69 @@ export const getDayWorkHistory = async (req, res) => {
   }
 };
 
-// Manual Checkout
-export const checkout = async (req, res) => {
-  try {const { employee_id, checkout_time } = req.body;
+// Manual Checkout - COMMENTED OUT (Using RFID-based attendance)
+// export const checkout = async (req, res) => {
+//   try {const { employee_id, checkout_time } = req.body;
 
-    if (!employee_id) {
-      return res.status(400).json({
-        success: false,
-        message: 'employee_id is required'
-      });
-    }
+//     if (!employee_id) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'employee_id is required'
+//       });
+//     }
 
-    // Validate employee_id format
-    if (!mongoose.Types.ObjectId.isValid(employee_id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid employee_id format'
-      });
-    }
+//     // Validate employee_id format
+//     if (!mongoose.Types.ObjectId.isValid(employee_id)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Invalid employee_id format'
+//       });
+//     }
 
-    // Check if employee exists
-    const employee = await Employee.findById(employee_id);
-    if (!employee) {
-      return res.status(404).json({
-        success: false,
-        message: 'Employee not found'
-      });
-    }
+//     // Check if employee exists
+//     const employee = await Employee.findById(employee_id);
+//     if (!employee) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Employee not found'
+//       });
+//     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);const attendance = await Attendance.findOne({
-      employee_id,
-      date: today
-    });if (!attendance) {
-      return res.status(404).json({
-        success: false,
-        message: 'No check-in record found for today. Please check in first before checking out.'
-      });
-    }
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);const attendance = await Attendance.findOne({
+//       employee_id,
+//       date: today
+//     });if (!attendance) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'No check-in record found for today. Please check in first before checking out.'
+//       });
+//     }
 
-    if (attendance.time_out) {
-      return res.status(400).json({
-        success: false,
-        message: 'Already checked out today',
-        data: {
-          time_out: attendance.time_out,
-          is_manual_checkout: attendance.is_manual_checkout
-        }
-      });
-    }
+//     if (attendance.time_out) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Already checked out today',
+//         data: {
+//           time_out: attendance.time_out,
+//           is_manual_checkout: attendance.is_manual_checkout
+//         }
+//       });
+//     }
 
-    attendance.time_out = checkout_time ? new Date(checkout_time) : new Date();
-    attendance.is_manual_checkout = !!checkout_time;
-    await attendance.save();res.status(200).json({
-      success: true,
-      data: attendance,
-      message: 'Checkout recorded successfully'
-    });
-  } catch (error) {res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
+//     attendance.time_out = checkout_time ? new Date(checkout_time) : new Date();
+//     attendance.is_manual_checkout = !!checkout_time;
+//     await attendance.save();res.status(200).json({
+//       success: true,
+//       data: attendance,
+//       message: 'Checkout recorded successfully'
+//     });
+//   } catch (error) {res.status(500).json({
+//       success: false,
+//       message: error.message
+//     });
+//   }
+// };
 
 // Get employee's own attendance records
 export const getEmployeeAttendance = async (req, res) => {
