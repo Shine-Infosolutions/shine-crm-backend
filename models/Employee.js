@@ -12,6 +12,7 @@ const Counter = mongoose.models.Counter || mongoose.model('Counter', counterSche
 const employeeSchema = new mongoose.Schema({
   employee_id: { type: String, unique: true },
   name: { type: String, required: true },
+  rfid_attendance_name: { type: String }, // Name used in RFID attendance system
   profile_image: {
     public_id: String,
     url: String,
