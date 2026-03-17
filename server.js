@@ -45,7 +45,8 @@ app.use(cors({
     "https://shine-crm-backend.vercel.app",
     "https://shine-crm-backend-eight.vercel.app",
     "https://shine-crm-frontend.vercel.app",
-    "https://shine-crm-frontend-sable.vercel.app"
+    "https://shine-crm-frontend-sable.vercel.app",
+    "https://shine-crm-frontend-sigma.vercel.app"
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
