@@ -43,6 +43,7 @@ app.use(cors({
     "http://localhost:5173",
     "http://localhost:5000",
     "https://shine-crm-backend-ten.vercel.app",
+    "https://shine-crm-frontend-nine.vercel.app",
     
   ],
   credentials: true,
