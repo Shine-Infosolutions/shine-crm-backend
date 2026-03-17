@@ -41,12 +41,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "http://localhost:5000", 
-    "https://shine-crm-backend.vercel.app",
-    "https://shine-crm-backend-eight.vercel.app",
-    "https://shine-crm-frontend.vercel.app",
-    "https://shine-crm-frontend-sable.vercel.app",
-    "https://shine-crm-frontend-sigma.vercel.app"
+    "http://localhost:5000"
+    
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
