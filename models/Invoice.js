@@ -50,29 +50,12 @@ const invoiceSchema = new mongoose.Schema(
     },
     productDetails: [
       {
-        description: {
-          type: String,
-          required: true,
-        },
-        unit: {
-          type: String,
-          required: true,
-        },
-        quantity: {
-          type: Number,
-          required: true,
-        },
-        price: {
-          type: Number,
-          required: true,
-        },
-        discountPercentage: {
-          type: Number,
-        },
-        amount: {
-          type: Number,
-          required: true,
-        },
+        description: { type: String },
+        unit: { type: String },
+        quantity: { type: Number },
+        price: { type: Number },
+        discountPercentage: { type: Number },
+        amount: { type: Number },
       },
     ],
     amountDetails: {
