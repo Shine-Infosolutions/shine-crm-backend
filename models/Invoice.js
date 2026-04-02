@@ -69,10 +69,28 @@ const invoiceSchema = new mongoose.Schema(
         type: Number,
         required: true,
       },
+      advancePayment: {
+        type: Number,
+        default: 0,
+      },
+      advancePaymentMode: {
+        type: String,
+        enum: ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card', 'Other'],
+        default: 'Cash',
+      },
+      dueAmount: {
+        type: Number,
+        default: 0,
+      },
     },
     isActive: {
       type: Boolean,
       default: true,
+    },
+    paymentMode: {
+      type: String,
+      enum: ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card', 'Other'],
+      default: 'Cash',
     },
     notes: {
       type: String,

@@ -14,7 +14,7 @@ const handleCustomerGST = (data) => {
 const allowedFields = [
   'isGSTInvoice', 'customerGST', 'invoiceDate', 'dueDate', 'customerName',
   'customerAddress', 'customerPhone', 'customerEmail', 'dispatchThrough',
-  'customerAadhar', 'productDetails', 'amountDetails', 'notes', 'lastInvoiceId'
+  'customerAadhar', 'productDetails', 'amountDetails', 'notes', 'lastInvoiceId', 'paymentMode'
 ];
 
 // Sanitize input data
@@ -85,8 +85,19 @@ export const createInvoice = async (req, res) => {
       invoiceData.amountDetails = {
         gstPercentage: 18,
         discountOnTotal: 0,
-        totalAmount: 0
+        totalAmount: 0,
+        advancePayment: 0,
+        dueAmount: 0
       };
+    } else {
+      // Ensure advancePayment and dueAmount exist
+      if (invoiceData.amountDetails.advancePayment === undefined) {
+        invoiceData.amountDetails.advancePayment = 0;
+      }
+      // Calculate dueAmount
+      const total = invoiceData.amountDetails.totalAmount || 0;
+      const advance = invoiceData.amountDetails.advancePayment || 0;
+      invoiceData.amountDetails.dueAmount = total - advance;
     }
     
     handleCustomerGST(invoiceData);
@@ -147,6 +158,13 @@ export const updateInvoice = async (req, res) => {
     const updateData = sanitizeInvoiceData(req.body);
     
     handleCustomerGST(updateData);
+    
+    // Recalculate dueAmount if amountDetails is being updated
+    if (updateData.amountDetails) {
+      const total = updateData.amountDetails.totalAmount || 0;
+      const advance = updateData.amountDetails.advancePayment || 0;
+      updateData.amountDetails.dueAmount = total - advance;
+    }
     
     const invoice = await Invoice.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
