@@ -156,25 +156,38 @@ export const getInvoiceById = async (req, res) => {
 export const updateInvoice = async (req, res) => {
   try {
     const updateData = sanitizeInvoiceData(req.body);
-    
+
     handleCustomerGST(updateData);
-    
+
     // Recalculate dueAmount if amountDetails is being updated
     if (updateData.amountDetails) {
-      const total = updateData.amountDetails.totalAmount || 0;
-      const advance = updateData.amountDetails.advancePayment || 0;
+      const total = Number(updateData.amountDetails.totalAmount || 0);
+      const advance = Number(updateData.amountDetails.advancePayment || 0);
       updateData.amountDetails.dueAmount = total - advance;
     }
-    
-    const invoice = await Invoice.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
-      runValidators: true,
+
+    // Build a $set object to avoid overwriting nested fields not included in the update
+    const setPayload = {};
+    Object.entries(updateData).forEach(([key, value]) => {
+      if (key === 'amountDetails' && value && typeof value === 'object') {
+        Object.entries(value).forEach(([subKey, subVal]) => {
+          setPayload[`amountDetails.${subKey}`] = subVal;
+        });
+      } else {
+        setPayload[key] = value;
+      }
     });
-    
+
+    const invoice = await Invoice.findByIdAndUpdate(
+      req.params.id,
+      { $set: setPayload },
+      { new: true, runValidators: true }
+    );
+
     if (!invoice) {
       return res.status(404).json({ success: false, error: "Invoice not found" });
     }
-    
+
     res.json({ success: true, data: invoice });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
